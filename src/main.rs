@@ -1,7 +1,7 @@
 extern crate zxcvbn_rs;
 
 use std::env;
-
+include!(concat!(env!("OUT_DIR"), "/global_data.rs"));
 
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
     println!("Password is {}", password);
@@ -15,5 +15,8 @@ fn main() {
     {
         Some(x) => zxcvbn(x, user_dictionary), 
         None => println!("Must provide a password"),
+    }
+    for value in frequencies.iter() {
+        println!("{}", value);
     }
 }
