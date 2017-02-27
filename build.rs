@@ -6,7 +6,7 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::cell::RefCell;
 
-struct word_data
+struct WordData
 {
     name: String,
     count: Option<usize>,
@@ -22,7 +22,7 @@ fn parse_data(data: String) -> Vec<String> {
         let size = line.split_whitespace().count();
         match size  {
             1 | 2=> {
-                let freq_string = match l.next() {
+                match l.next() {
                     Some(frqs) => word_list.push(frqs.to_string()),
                     None => continue,
                 };  
@@ -33,7 +33,7 @@ fn parse_data(data: String) -> Vec<String> {
     word_list
 }
 
-fn filter_data(dicts: &mut Vec<word_data>) {
+fn filter_data(dicts: &mut Vec<WordData>) {
     println!("Not yet implemented");
     for datum in dicts {
         if datum.count.is_some() {
@@ -61,11 +61,8 @@ fn main() {
     };
 
 
-    let mut exported_data : Vec<word_data> = Vec::new();
+    let mut exported_data : Vec<WordData> = Vec::new();
     
-    let mut words : Vec<String> = Vec::new();
-    let mut frequencies : HashMap<String, u32> = HashMap::new();
-
     for entry in fs::read_dir("./data").unwrap() {
         let dir = match entry {
             Ok(dir) => dir,
@@ -90,7 +87,7 @@ fn main() {
                     Some(t) => Some(*t),
                     None => None,
                 };
-                let mut temp = word_data{ name: name.to_string(), count: count,
+                let temp = WordData{ name: name.to_string(), count: count,
                                           data: RefCell::new(parse_data(s)),
                 };
                 exported_data.push(temp);
@@ -99,7 +96,7 @@ fn main() {
     }
 
     filter_data(&mut exported_data);
-
+    println!("Size of exported data is {}", exported_data.len());
     let mut source : String = String::new();
     
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -109,7 +106,7 @@ fn main() {
     for lists in exported_data.iter() {
         let mut line = format!("static {}: &'static [String] = &[ \n", 
                                lists.name);
-
+        
         let data = lists.data.borrow();
 
         for word in data.iter() {
@@ -120,21 +117,7 @@ fn main() {
         source.push_str(line.as_str());
     }
 
-    /*let mut source = String::from("#[macro_use]\n \
-                                  extern crate lazy_static;\n \
-                                  \n \
-                                  \n \
-                                  lazy_static! {\n \
-                                  \tstatic ref frequencies: \
-                                  Vec<&'static str> = {\n \
-                                   \t\tlet mut v = Vec::new();\n");
-    
-    for (key, value) in frequencies.iter() {
-        let fix_key = key.replace('\\', "\\\\");
-        let line = format!("\t\tv.push(\"{}\");\n", fix_key);
-        source.push_str(line.as_str());
-    }
-    */
+
     f.write_all(source.as_bytes()).unwrap();
     panic!("Test");
 }
