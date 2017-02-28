@@ -9,14 +9,10 @@ fn zxcvbn(password: String, user_dictionary: Vec<String>) {
 }
 
 fn main() {
-    let password : Option<String> = env::args().nth(1);
+    let password: Option<String> = env::args().nth(1);
     let user_dictionary: Vec<String> = env::args().skip(2).collect();
-    match password
-    {
+    match password {
         Some(x) => zxcvbn(x, user_dictionary), 
         None => println!("Must provide a password"),
-    }
-    for value in frequencies.iter() {
-        println!("{}", value);
     }
 }

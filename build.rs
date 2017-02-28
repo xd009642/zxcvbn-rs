@@ -33,15 +33,50 @@ fn parse_data(data: String) -> Vec<String> {
     word_list
 }
 
+fn is_rare_and_short(word: &String, rank: u32) -> bool {
+    let result = if word.len() < 8 {
+        rank >=10u32.pow(word.len() as u32)
+    } else { 
+        false
+    };
+    result
+}
+
 fn filter_data(dicts: &mut Vec<WordData>) {
-    println!("Not yet implemented");
+    let mut best_match : HashMap<String, (usize, String)> = HashMap::new();
+    // Build best matches. Shows precedence of words in different dictionaries
+    for datum in dicts.iter() {
+        if datum.count.is_some() {
+            let words = datum.data.borrow();
+            for (rank, word) in words.iter().enumerate() {
+                if best_match.contains_key(word) {
+                    if rank < best_match.get(word).unwrap().0 {
+                        best_match.insert(word.clone(), 
+                                          (rank, datum.name.clone()));
+                    } 
+                } else {
+                    best_match.insert(word.clone(), 
+                                      (rank, datum.name.clone()));
+                }
+            }
+        }
+    }
+
     for datum in dicts {
         if datum.count.is_some() {
+        
+            let conditional = |w: &String| { 
+                best_match.get(w).unwrap().1 == datum.name && 
+                    !is_rare_and_short(w, best_match.get(w).unwrap().0 as u32)
+            };
+
             let mut words = datum.data.borrow_mut();
-            let count = datum.count.unwrap();
-            if words.len() > count {
-                words.resize(count, String::new());
-            }
+            words.retain(conditional);
+            /*for word in words.iter_mut() {
+                if best_match.get(word).unwrap().1 != datum.name {
+                    
+                }
+            }*/
         }
     }
 }
@@ -94,9 +129,18 @@ fn main() {
             },
         }
     }
-
+    println!("Filtering data");
     filter_data(&mut exported_data);
-    println!("Size of exported data is {}", exported_data.len());
+    println!("Applying size limits");
+    // Apply limits
+    for lists in exported_data.iter_mut() {
+        println!("Looking for limits for {}", lists.name);
+        if let Some(limit) = limits.get(lists.name.as_str()) {
+            println!("Limit is {}", limit);
+            lists.data.borrow_mut().truncate(limit.clone());
+        }
+    }
+    println!("Exporting data");
     let mut source : String = String::new();
     
     let out_dir = env::var("OUT_DIR").unwrap();
