@@ -6,8 +6,12 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::cell::RefCell;
 
-struct WordData
-{
+enum KeyAlignment {
+    Slanted,
+    Aligned,
+}
+
+struct WordData {
     name: String,
     count: Option<usize>,
     data: RefCell<Vec<String>>,
@@ -72,14 +76,64 @@ fn filter_data(dicts: &mut Vec<WordData>) {
 
             let mut words = datum.data.borrow_mut();
             words.retain(conditional);
-            /*for word in words.iter_mut() {
-                if best_match.get(word).unwrap().1 != datum.name {
-                    
-                }
-            }*/
         }
     }
 }
+
+/// Use trailing spaces at the start of lines to represent non character keys
+/// such as caps tab and shift.
+fn generate_adjacencies(keyboard: String, 
+                        align: KeyAlignment) -> HashMap<String, String> {
+    let mut adj_list : HashMap<String, String> = HashMap::new();
+    let rows = keyboard.lines()
+        .map(|x| x.split(' ').collect::<Vec<&str>>())
+        .collect::<Vec<Vec<&str>>>();
+    
+    for (i, row) in rows.iter().enumerate() {
+        for (j, key) in row.iter().enumerate() {
+            if !key.is_empty() {
+                let mut value : String = String::new();
+                // Values for row above
+                if i>0 {
+                    let prev = rows.get(i-1).unwrap();
+                    let ap = format!("{} ", prev.get(j).unwrap());
+                    value.push_str(ap.as_str());
+                    if let Some(pchar) = prev.get(j+1) {
+                        let ap = format!("{} ", pchar);
+                        value.push_str(ap.as_str());
+                    }
+                }
+                // Values for this row
+                if j > 0 {
+                    let ap = format!("{} ", row.get(j-1).unwrap());
+                    value.push_str(ap.as_str());
+                }
+                if let Some(next) = row.get(j+1) {
+                    let ap = format!("{} ", next);
+                    value.push_str(ap.as_str());
+                }
+                // Values for next row
+                if let Some(next) = rows.get(i+1) {
+                    if let Some(nchar) = next.get(j) {
+                        if !nchar.is_empty()
+                        {
+                            let ap = format!("{} ", nchar);
+                            value.push_str(ap.as_str());
+    
+                            if let Some(nchar) = next.get(j+1) {
+                                let ap = format!("{} ", nchar);
+                                value.push_str(ap.as_str());
+                            }
+                        }
+                    } 
+                }
+                adj_list.insert(key.to_string(), value);
+            }
+        }
+    }
+    adj_list
+}
+
 
 // Choose word limits for each file...
 fn main() {
@@ -134,9 +188,7 @@ fn main() {
     println!("Applying size limits");
     // Apply limits
     for lists in exported_data.iter_mut() {
-        println!("Looking for limits for {}", lists.name);
         if let Some(limit) = limits.get(lists.name.as_str()) {
-            println!("Limit is {}", limit);
             lists.data.borrow_mut().truncate(limit.clone());
         }
     }
@@ -160,8 +212,13 @@ fn main() {
         line.push_str("];\n\n");
         source.push_str(line.as_str());
     }
+    // Trailing space after \n is to represent offset of keyboard. (¬ is hard)
+    let qwerty_uk = "¬` 1! 2\" 3£ 4$ %5 6^ 7& 8* 9( 0) -_ =+ \n \
+    qQ wW eE rR tT yY uU iI oO pP [{ ]}\n \
+    aA sS dD fF gG hH jJ kK lL ;: '@ #~\n \
+    \\| zZ xX cC vV bB nN mM ,< /?".to_string();
 
-
+    generate_adjacencies(qwerty_uk, KeyAlignment::Slanted);
     f.write_all(source.as_bytes()).unwrap();
     panic!("Test");
 }
