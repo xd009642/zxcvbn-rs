@@ -1,7 +1,8 @@
 extern crate zxcvbn_rs;
 
 use std::env;
-include!(concat!(env!("OUT_DIR"), "/global_data.rs"));
+include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
+include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
     println!("Password is {}", password);
