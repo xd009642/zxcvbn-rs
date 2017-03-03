@@ -88,7 +88,6 @@ fn generate_adjacencies(keyboard: String,
     let rows = keyboard.lines()
         .map(|x| x.split(' ').collect::<Vec<&str>>())
         .collect::<Vec<Vec<&str>>>();
-    
     for (i, row) in rows.iter().enumerate() {
         for (j, key) in row.iter().enumerate() {
             if !key.is_empty() {
@@ -96,8 +95,10 @@ fn generate_adjacencies(keyboard: String,
                 // Values for row above
                 if i>0 {
                     let prev = rows.get(i-1).unwrap();
-                    let ap = format!("{} ", prev.get(j).unwrap());
-                    value.push_str(ap.as_str());
+                    if let Some(pchar) = prev.get(j) {
+                        let ap = format!("{} ", pchar);
+                        value.push_str(ap.as_str());
+                    }
                     if let Some(pchar) = prev.get(j+1) {
                         let ap = format!("{} ", pchar);
                         value.push_str(ap.as_str());
@@ -132,6 +133,11 @@ fn generate_adjacencies(keyboard: String,
         }
     }
     adj_list
+}
+
+fn export_adjacencies(target: fs::File, name: String, 
+                      data: HashMap<String, String>) {
+    println!("exportin"); 
 }
 
 
@@ -196,7 +202,7 @@ fn main() {
     let mut source : String = String::new();
     
     let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("global_data.rs");
+    let dest_path = Path::new(&out_dir).join("frequency_data.rs");
     let mut f = fs::File::create(&dest_path).unwrap();
     
     for lists in exported_data.iter() {
@@ -212,13 +218,29 @@ fn main() {
         line.push_str("];\n\n");
         source.push_str(line.as_str());
     }
-    // Trailing space after \n is to represent offset of keyboard. (¬ is hard)
-    let qwerty_uk = "¬` 1! 2\" 3£ 4$ %5 6^ 7& 8* 9( 0) -_ =+ \n \
-    qQ wW eE rR tT yY uU iI oO pP [{ ]}\n \
-    aA sS dD fF gG hH jJ kK lL ;: '@ #~\n \
-    \\| zZ xX cC vV bB nN mM ,< /?".to_string();
 
-    generate_adjacencies(qwerty_uk, KeyAlignment::Slanted);
     f.write_all(source.as_bytes()).unwrap();
+    // Trailing space after \n is to represent offset of keyboard. (¬ is hard)
+    let qwerty_uk = "¬` 1! 2\" 3£ 4$ %5 6^ 7& 8* 9( 0) -_ =+\n \
+                    qQ wW eE rR tT yY uU iI oO pP [{ ]}\n \
+                    aA sS dD fF gG hH jJ kK lL ;: '@ #~\n \
+                    \\| zZ xX cC vV bB nN mM ,< /?".to_string();
+
+    let dvorak = "~ 1! 2@ 3# 4$ 5% 6^ 7& 8* 9( 0) [{ ]}\n \
+                  '\" ,< .> pP yY fF gG cC rR lL /? =+ \\|\n \
+                  aA oO eE uU iI dD hH tT nN sS -_\n \
+                  ;: qQ jJ kK xX bB mM vV zZ".to_string();
+
+    let dest_path = Path::new(&out_dir).join("adjacency_data.rs");
+    let mut f = fs::File::create(&dest_path).unwrap();
+    println!("Generating adjacencies");
+    if let Ok(clone_file) = f.try_clone() {
+        let data = generate_adjacencies(qwerty_uk, KeyAlignment::Slanted);
+        export_adjacencies(clone_file, "qwerty".to_string(), data);
+    }
+    if let Ok(clone_file) = f.try_clone() {
+        let data = generate_adjacencies(dvorak, KeyAlignment::Slanted);
+        export_adjacencies(clone_file, "dvorak".to_string(), data);
+    }
     panic!("Test");
 }
