@@ -1,10 +1,21 @@
+#[macro_use]
+extern crate slog;
+extern crate slog_stream;
+extern crate slog_stdlog;
+#[macro_use]
+extern crate log;
+
 use std::env;
 use std::fs;
+use std::io;
 use std::io::prelude::*;
 use std::io::Write;
 use std::path::Path;
 use std::collections::HashMap;
 use std::cell::RefCell;
+use std::error::Error;
+
+use slog::DrainExt;
 
 enum KeyAlignment {
     Slanted,
@@ -148,15 +159,29 @@ fn export_adjacencies(target: &mut fs::File, name: String,
         source.push_str(line.as_str());
     }
     source.push_str("\t\tm\n\t};\n");
-    target.write_all(source.as_bytes());
+    if let Err(e) = target.write_all(source.as_bytes()) {
+        error!("Failed to export {} : {}", name, e.description());
+    }
 }
 
 
-// Choose word limits for each file...
 fn main() {
+
+    let build_log = "build.log";
+    let log_file = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(build_log).unwrap();
+    let drain = slog_stream::stream(log_file, LogFormat).fuse();
+    let logger = slog::Logger::root(drain, o!());
+    slog_stdlog::set_logger(logger).unwrap();
+
+    info!("Building zxcvbn_rs.");
+    
     // Data files are either lists or frequency tables. Load all files in data
     // and then identify and parse accordingly and generate code
-    println!("Generating source from /data/");
+    info!("Generating source from /data/");
     let limits : HashMap<&str, usize> = {
         let mut map = HashMap::new();
         map.insert("us_tv_and_film", 30000);
@@ -209,7 +234,7 @@ fn main() {
             lists.data.borrow_mut().truncate(limit.clone());
         }
     }
-    println!("Exporting data");
+    info!("Exporting frequency based data");
     let mut source : String = String::new();
     
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -218,7 +243,7 @@ fn main() {
     
     for lists in exported_data.iter() {
         let mut line = format!("static {}: &'static [&'static str] = &[ \n", 
-                               lists.name);
+                               lists.name.to_uppercase());
         
         let data = lists.data.borrow();
 
@@ -229,8 +254,11 @@ fn main() {
         line.push_str("];\n\n");
         source.push_str(line.as_str());
     }
-    f.write_all(source.as_bytes()).unwrap();
-    f.sync_all();
+    match f.write_all(source.as_bytes()) {
+        Ok(_) => info!("Successfully exported frequency data"),
+        Err(e) => error!("{}", e.description()),
+    }
+    f.sync_all().unwrap();
 
     // Trailing space after \n is to represent offset of keyboard. (¬ is hard)
     let qwerty_uk = "¬` 1! 2\\\" 3£ 4$ %5 6^ 7& 8* 9( 0) -_ =+\n \
@@ -253,7 +281,7 @@ fn main() {
     \n \
     use std::collections::HashMap;\n\
     \n\
-    lazy_static! {\n");
+    lazy_static! {\n").unwrap();
 
     if let Ok(mut clone_file) = f.try_clone() {
         let data = generate_adjacencies(qwerty_uk, KeyAlignment::Slanted);
@@ -264,8 +292,24 @@ fn main() {
         export_adjacencies(&mut clone_file, "DVORAK".to_string(), data);
     }
 
-    f.write_all(b"}\n");
+    f.write_all(b"}\n").unwrap();
 
     f.sync_all().unwrap();
-    println!("Code generation finished");
+    info!("Code generation finished");
+}
+
+
+struct LogFormat;
+
+impl slog_stream::Format for LogFormat {
+    fn format(&self,
+              io: &mut io::Write,
+              rinfo: &slog::Record,
+              _logger_values: &slog::OwnedKeyValueList)
+        -> io::Result<()> {
+            let msg = format!("{} - {}\n", rinfo.level(), rinfo.msg());
+            let _ = try!(io.write_all(msg.as_bytes()));
+            Ok(())
+        }
+
 }

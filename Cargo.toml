@@ -3,5 +3,11 @@ name = "zxcvbn_rs"
 version = "0.1.0"
 authors = ["Daniel McKenna <danielmckenna93@gmail.com>"]
 build = "build.rs"
+
 [dependencies]
 lazy_static = "0.2.*"
+[build-dependencies]
+slog = "1.2"
+slog-stream = "1.2.0"
+slog-stdlog = "1.1.0"
+log = "0.3.6"
