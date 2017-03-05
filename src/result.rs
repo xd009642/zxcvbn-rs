@@ -2,6 +2,7 @@
 
 /// Provides estimations of the time to crack a password given the number of
 /// guesses required to crack it
+#[derive(Default)]
 struct CrackTimes {
     /// Online attack on a service with rate limiting 
     /// (100 per hour)
@@ -48,9 +49,19 @@ struct Feedback {
     suggestions: String,
 }
 
+impl Default for Feedback {
+    fn default() -> Feedback {
+        Feedback { advice: String::new(), description: String::new(), 
+                   suggestions: String::from("Use a few words, \
+                   avoid common phrases.\n\
+                   No need for symbols, digits, or uppercase letters.")}
+    }
+}
+
 /// zxcvbn-rs results for a given password.
 /// TODO Implement a pretty print for struct to save having string fields for 
 /// formatted data
+#[derive(Default)]
 struct Result {
     /// Estimated guesses to crack password
     guesses: u32,
@@ -59,7 +70,7 @@ struct Result {
     /// Estimation of physical time to crack password
     crack_times: CrackTimes,
     /// Indicator of password quality
-    score: PasswordScore,
+    score: Option<PasswordScore>,
     /// Feedback for the user based on password
     feedback: Option<Feedback>,
     /// Sequence of words in dictionary that results are based off
@@ -69,3 +80,23 @@ struct Result {
 }
 
 
+fn get_match_feedback(matched: &String, only_match:bool) -> String {
+
+    String::new()
+}
+
+impl Result {
+    fn get_feedback(&mut self, guesses: u32, matches: &Vec<String>) {
+        if matches.is_empty() {
+            self.feedback = Some(Feedback::default());
+        }
+        if let Some(ref s) = self.score {
+            let longest_sequence = matches.iter()
+                .max_by(|x, y| x.len().cmp(&y.len()))
+                .unwrap();
+            let feedback = get_match_feedback(longest_sequence, 
+                                              matches.len()==1);
+        }
+    }
+
+}
