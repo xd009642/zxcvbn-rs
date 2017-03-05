@@ -6,6 +6,8 @@ build = "build.rs"
 
 [dependencies]
 lazy_static = "0.2.*"
+chrono = "0.3"
+
 [build-dependencies]
 slog = "1.2"
 slog-stream = "1.2.0"
