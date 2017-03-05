@@ -23,7 +23,7 @@ impl CrackTimes {
         let ot = f_guess / (100.0f32 / 3600.0f32);
         let ont = f_guess / 10.0f32;
         let osh = f_guess / 1e4;
-        let ofh = gueses / 1e10;
+        let ofh = f_guess / 1e10;
         CrackTimes { online_throttling: ot, online_no_throttling: ont,
                      offline_slow_hashing: osh, offline_fast_hashing: ofh}
     }
@@ -63,7 +63,7 @@ struct Result {
     /// Feedback for the user based on password
     feedback: Option<Feedback>,
     /// Sequence of words in dictionary that results are based off
-    sequence: Vec<&str>,
+    sequence: Vec<String>,
     /// Time for zxcvbn to calculate these results
     calculation_time: u32,
 }
