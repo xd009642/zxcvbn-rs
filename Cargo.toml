@@ -1,5 +1,5 @@
 [package]
-name = "zxcvbn_rs"
+name = "zxcvbn-rs"
 version = "0.1.0"
 authors = ["Daniel McKenna <danielmckenna93@gmail.com>"]
 build = "build.rs"
