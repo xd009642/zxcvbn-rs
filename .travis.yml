@@ -7,10 +7,7 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
-before_script:
-- export PATH rustfmt || cargo install rustfmt
 script:
 - cargo clean
-- (test $TRAVIS_RUST_VERSION != "nightly" || cargo fmt -- --write-mode=diff)
 - cargo build
 - cargo test
