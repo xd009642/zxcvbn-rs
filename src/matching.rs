@@ -1,10 +1,11 @@
 use std::env;
 use std::cmp::Ordering;
+use std::iter::Iterator;
 
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
-#[derive(Eq)]
+#[derive(Eq, Clone)]
 struct BaseMatch {
     pattern: String,
     start: usize,
@@ -44,19 +45,21 @@ pub fn omnimatch(password: &str) -> Vec<&str> {
 }
 
 
-fn master_dictionary_match(password: &str, matches: &mut Vec<&str>) {
-    dictionary_match(password, matches, FEMALE_NAMES);
-    dictionary_match(password, matches, MALE_NAMES);
-    dictionary_match(password, matches, SURNAMES);
-    dictionary_match(password, matches, PASSWORDS);
-    dictionary_match(password, matches, ENGLISH_WIKIPEDIA);
-    dictionary_match(password, matches, US_TV_AND_FILM);
+fn master_dictionary_match(password: &str, matches: &mut Vec<&str>) -> Vec<BaseMatch> {
+    let default_dicts = vec![FEMALE_NAMES,
+                             MALE_NAMES,
+                             SURNAMES,
+                             PASSWORDS,
+                             ENGLISH_WIKIPEDIA,
+                             US_TV_AND_FILM];
+
+    default_dicts.iter()
+                 .map(|x| dictionary_match(password, x))
+                 .flat_map(|x| x.into_iter())
+                 .collect::<Vec<BaseMatch>>()
 }
 
-fn dictionary_match<'a>(password: &str,
-                        matches: &mut Vec<&str>,
-                        dictionary: &[&'static str])
-                        -> Vec<BaseMatch> {
+fn dictionary_match<'a>(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
 
     let mut matches: Vec<BaseMatch> = Vec::new();
 
