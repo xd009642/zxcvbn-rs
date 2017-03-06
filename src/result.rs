@@ -6,16 +6,16 @@
 struct CrackTimes {
     /// Online attack on a service with rate limiting 
     /// (100 per hour)
-    online_throttling : f32,
+    online_throttling: f32,
     /// Offline attack on a service lacking or with compromised rate limiting 
     /// (10 per second)
-    online_no_throttling : f32,
+    online_no_throttling: f32,
     /// Offline attack, assumes multiple attackers with a slow hash function
     /// (1e4 per second)
-    offline_slow_hashing : f32,
+    offline_slow_hashing: f32,
     /// Offline attack with fast hash and multiple machines
     /// (1e10 per second)
-    offline_fast_hashing : f32,
+    offline_fast_hashing: f32,
 }
 
 impl CrackTimes {
@@ -25,8 +25,12 @@ impl CrackTimes {
         let ont = f_guess / 10.0f32;
         let osh = f_guess / 1e4;
         let ofh = f_guess / 1e10;
-        CrackTimes { online_throttling: ot, online_no_throttling: ont,
-                     offline_slow_hashing: osh, offline_fast_hashing: ofh}
+        CrackTimes {
+            online_throttling: ot,
+            online_no_throttling: ont,
+            offline_slow_hashing: osh,
+            offline_fast_hashing: ofh,
+        }
     }
 }
 
@@ -51,10 +55,12 @@ struct Feedback {
 
 impl Default for Feedback {
     fn default() -> Feedback {
-        Feedback { advice: String::new(), description: String::new(), 
-                   suggestions: String::from("Use a few words, \
-                   avoid common phrases.\n\
-                   No need for symbols, digits, or uppercase letters.")}
+        Feedback {
+            advice: String::new(),
+            description: String::new(),
+            suggestions: String::from("Use a few words, avoid common phrases.\nNo need for \
+                                       symbols, digits, or uppercase letters."),
+        }
     }
 }
 
@@ -80,7 +86,7 @@ struct Result {
 }
 
 
-fn get_match_feedback(matched: &String, only_match:bool) -> String {
+fn get_match_feedback(matched: &String, only_match: bool) -> String {
 
     String::new()
 }
@@ -92,11 +98,9 @@ impl Result {
         }
         if let Some(ref s) = self.score {
             let longest_sequence = matches.iter()
-                .max_by(|x, y| x.len().cmp(&y.len()))
-                .unwrap();
-            let feedback = get_match_feedback(longest_sequence, 
-                                              matches.len()==1);
+                                          .max_by(|x, y| x.len().cmp(&y.len()))
+                                          .unwrap();
+            let feedback = get_match_feedback(longest_sequence, matches.len() == 1);
         }
     }
-
 }

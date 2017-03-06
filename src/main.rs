@@ -1,6 +1,6 @@
 extern crate zxcvbn_rs;
 
-use zxcvbn_rs::{matching};
+use zxcvbn_rs::matching;
 use std::env;
 
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
