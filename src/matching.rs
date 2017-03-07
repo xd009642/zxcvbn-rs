@@ -5,8 +5,8 @@ use std::iter::Iterator;
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
-#[derive(Eq, Clone)]
-struct BaseMatch {
+#[derive(Eq, Clone, Debug)]
+pub struct BaseMatch {
     pattern: String,
     start: usize,
     end: usize,
@@ -36,16 +36,13 @@ impl PartialEq for BaseMatch {
 
 
 /// Matches the password against every matcher returning the matches
-pub fn omnimatch(password: &str) -> Vec<&str> {
-    let mut matches: Vec<&str> = Vec::new();
-    // let mut dict_matches = master_dictionary_match(password);
-    master_dictionary_match(password, &mut matches);
-
-    matches
+pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
+    master_dictionary_match(password)
 }
 
 
-fn master_dictionary_match(password: &str, matches: &mut Vec<&str>) -> Vec<BaseMatch> {
+fn master_dictionary_match(password: &str) -> Vec<BaseMatch> {
+
     let default_dicts = vec![FEMALE_NAMES,
                              MALE_NAMES,
                              SURNAMES,
@@ -59,10 +56,10 @@ fn master_dictionary_match(password: &str, matches: &mut Vec<&str>) -> Vec<BaseM
                  .collect::<Vec<BaseMatch>>()
 }
 
-fn dictionary_match<'a>(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
+fn dictionary_match(password: &str, 
+                        dictionary: &[&'static str]) -> Vec<BaseMatch> {
 
     let mut matches: Vec<BaseMatch> = Vec::new();
-
     let lower = password.to_lowercase();
     for i in 0..password.len() {
         for j in i..password.len() + 1 {
@@ -74,10 +71,10 @@ fn dictionary_match<'a>(password: &str, dictionary: &[&'static str]) -> Vec<Base
                     end: j,
                     token: slice.to_string(),
                 });
+                return matches;
             }
         }
     }
-
     matches.sort();
     matches
 }

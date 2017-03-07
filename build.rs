@@ -49,30 +49,23 @@ fn parse_data(data: String) -> Vec<String> {
 }
 
 fn is_rare_and_short(word: &String, rank: u32) -> bool {
-    let result = if word.len() < 8 {
-        rank >=10u32.pow(word.len() as u32)
-    } else { 
-        false
-    };
-    result
+    word.len()<8 && rank >=10u32.pow(word.len() as u32) 
 }
 
 fn filter_data(dicts: &mut Vec<WordData>) {
     let mut best_match : HashMap<String, (usize, String)> = HashMap::new();
     // Build best matches. Shows precedence of words in different dictionaries
     for datum in dicts.iter() {
-        if datum.count.is_some() {
-            let words = datum.data.borrow();
-            for (rank, word) in words.iter().enumerate() {
-                if best_match.contains_key(word) {
-                    if rank < best_match.get(word).unwrap().0 {
-                        best_match.insert(word.clone(), 
-                                          (rank, datum.name.clone()));
-                    } 
-                } else {
+        let words = datum.data.borrow();
+        for (rank, word) in words.iter().enumerate() {
+            if best_match.contains_key(word) {
+                if rank < best_match.get(word).unwrap().0 {
                     best_match.insert(word.clone(), 
                                       (rank, datum.name.clone()));
-                }
+                } 
+            } else {
+                best_match.insert(word.clone(), 
+                                  (rank, datum.name.clone()));
             }
         }
     }

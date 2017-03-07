@@ -6,7 +6,8 @@ use std::env;
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
     println!("Password is {}", password);
     let matches = matching::omnimatch(password.as_ref());
-    println!("User provided custom dict: {:?}", user_dictionary);
+    println!("Found matches {:?}", matches.len());
+    println!("Found matches \n{:?}\n", matches);
 }
 
 fn main() {
