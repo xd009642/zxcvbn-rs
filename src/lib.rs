@@ -6,3 +6,4 @@ include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
 pub mod matching;
 pub mod result;
+pub mod scoring;

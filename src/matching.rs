@@ -7,10 +7,10 @@ include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
 #[derive(Eq, Clone, Debug)]
 pub struct BaseMatch {
-    pattern: String,
-    start: usize,
-    end: usize,
-    token: String,
+    pub pattern: String,
+    pub start: usize,
+    pub end: usize,
+    pub token: String,
 }
 
 impl Ord for BaseMatch {

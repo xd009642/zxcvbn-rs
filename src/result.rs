@@ -3,7 +3,7 @@
 /// Provides estimations of the time to crack a password given the number of
 /// guesses required to crack it
 #[derive(Default)]
-struct CrackTimes {
+pub struct CrackTimes {
     /// Online attack on a service with rate limiting 
     /// (100 per hour)
     online_throttling: f32,
@@ -34,7 +34,7 @@ impl CrackTimes {
     }
 }
 
-enum PasswordScore {
+pub enum PasswordScore {
     VeryWeak = 0,
     Weak = 1,
     Medium = 2,
@@ -44,7 +44,7 @@ enum PasswordScore {
 
 /// Feedback message for user.
 /// Not necessarily required for users with strong passwords
-struct Feedback {
+pub struct Feedback {
     /// Advice for creating stronger passwords  
     advice: String,
     /// Describes what is wrong with the current password
@@ -68,21 +68,21 @@ impl Default for Feedback {
 /// TODO Implement a pretty print for struct to save having string fields for 
 /// formatted data
 #[derive(Default)]
-struct Result {
+pub struct PasswordResult {
     /// Estimated guesses to crack password
-    guesses: u32,
+    pub guesses: u32,
     /// Order of magnitude of guesses
-    guesses_log10: f64,
+    pub guesses_log10: f64,
     /// Estimation of physical time to crack password
-    crack_times: CrackTimes,
+    pub crack_times: CrackTimes,
     /// Indicator of password quality
-    score: Option<PasswordScore>,
+    pub score: Option<PasswordScore>,
     /// Feedback for the user based on password
-    feedback: Option<Feedback>,
+    pub feedback: Option<Feedback>,
     /// Sequence of words in dictionary that results are based off
-    sequence: Vec<String>,
+    pub sequence: Vec<String>,
     /// Time for zxcvbn to calculate these results
-    calculation_time: u32,
+    pub calculation_time: u32,
 }
 
 
@@ -91,7 +91,7 @@ fn get_match_feedback(matched: &String, only_match: bool) -> String {
     String::new()
 }
 
-impl Result {
+impl PasswordResult {
     fn get_feedback(&mut self, guesses: u32, matches: &Vec<String>) {
         if matches.is_empty() {
             self.feedback = Some(Feedback::default());
