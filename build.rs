@@ -70,17 +70,14 @@ fn filter_data(dicts: &mut Vec<WordData>) {
         }
     }
 
-    for datum in dicts {
-        if datum.count.is_some() {
-        
-            let conditional = |w: &String| { 
-                best_match.get(w).unwrap().1 == datum.name && 
-                    !is_rare_and_short(w, best_match.get(w).unwrap().0 as u32)
-            };
+    for datum in dicts {    
+        let conditional = |w: &String| { 
+            best_match.get(w).unwrap().1 == datum.name && 
+                !is_rare_and_short(w, best_match.get(w).unwrap().0 as u32)
+        };
 
-            let mut words = datum.data.borrow_mut();
-            words.retain(conditional);
-        }
+        let mut words = datum.data.borrow_mut();
+        words.retain(conditional);
     }
 }
 

@@ -5,7 +5,9 @@ use std::path::Path;
 use std::io;
 use std::io::Read;
 
-fn get_words(data: String) -> Vec<String> {
+fn get_words(data: String, 
+             master:&mut Vec<String>,
+             duplicates:&mut Vec<String>) {
     let mut word_list : Vec<String> = Vec::new();
 
     for line in data.lines() {
@@ -14,19 +16,25 @@ fn get_words(data: String) -> Vec<String> {
         match size {
             1 | 2 => {
                 match l.next() {
-                    Some(w) => word_list.push(w.to_string()),
+                    Some(w) => {
+                        if master.contains(&w.to_string()) {
+                            duplicates.push(w.to_string());
+                        } else {
+                            master.push(w.to_string());
+                        }
+                    },
                     None => continue,
                 };
             },
             _ => continue,
         }
     }
-    word_list
 }
 
 #[test]
 fn no_duplicates() {
     let mut words:Vec<String> = Vec::new();
+    let mut duplicate_words:Vec<String> = Vec::new();
     for entry in fs::read_dir("./data").unwrap() {
         let dir = match entry {
             Ok(directory) => directory,
@@ -46,18 +54,16 @@ fn no_duplicates() {
                 Some(fname) => fname,
                 None => continue,
             };
-            words.append(&mut get_words(s));
+            get_words(s, &mut words, &mut duplicate_words);
         }
     }
-    words.sort();
-    words.dedup();
     
     let dicts = vec![FEMALE_NAMES, MALE_NAMES, SURNAMES, PASSWORDS,
                      ENGLISH_WIKIPEDIA, US_TV_AND_FILM];
+
     let dict_names=vec!["Female names", "Male names", "Surnames", "Passwords",
                         "Wikipedia", "TV and film"];
-    
-    for word in words {
+    for word in duplicate_words.iter() {
         let mut appearances:Vec<&str> = Vec::new();
         let mut count:usize=0;
         for (i, d) in dicts.iter().enumerate() {
