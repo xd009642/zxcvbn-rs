@@ -11,7 +11,7 @@ use std::io;
 use std::io::prelude::*;
 use std::io::Write;
 use std::path::Path;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::cell::RefCell;
 use std::error::Error;
 
@@ -31,14 +31,18 @@ struct WordData {
 
 fn parse_data(data: String) -> Vec<String> {
     let mut word_list : Vec<String> = Vec::new();
-
+    let mut checker: HashSet<String> = HashSet::new();
     for line in data.lines() {
         let mut l = line.split_whitespace();
         let size = line.split_whitespace().count();
         match size  {
             1 | 2=> {
                 match l.next() {
-                    Some(frqs) => word_list.push(frqs.to_string()),
+                    Some(frqs) => {
+                        if checker.insert(frqs.to_string()) {
+                            word_list.push(frqs.to_string());
+                        }
+                    },
                     None => continue,
                 };  
             },
@@ -71,7 +75,7 @@ fn filter_data(dicts: &mut Vec<WordData>) {
     }
 
     for datum in dicts {    
-        let conditional = |w: &String| { 
+        let conditional = |w: &String| {
             best_match.get(w).unwrap().1 == datum.name && 
                 !is_rare_and_short(w, best_match.get(w).unwrap().0 as u32)
         };
