@@ -5,12 +5,80 @@ use std::iter::Iterator;
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
-#[derive(Eq, Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Months {
+    January,
+    February,
+    March,
+    April,
+    May,
+    June,
+    July,
+    August,
+    September,
+    October,
+    November,
+    December,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Days {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MatchData {
+    NoMatch,
+    Dictionary {
+        matched_word: String,
+        rank: usize,
+        dictionary_name: String,
+        reversed: bool,
+        l33t: bool,
+    },
+    Spatial {
+        graph: String,
+        turns: usize,
+        shifted_count: usize,
+    },
+    Repeat {
+        base_token: String,
+        base_guesses: usize,
+        repeat_count: usize,
+    },
+    L33t {
+        l33t: bool,
+    },
+    Sequence {
+        name: String,
+        space: String,
+        ascending: bool,
+    },
+    Regex {
+        name: String,
+        regex_match: String,
+    },
+    Date {
+        separator: char,
+        year: u8,
+        month: Months,
+        day: Days,
+    },
+}
+
+#[derive(Clone, Debug, Eq)]
 pub struct BaseMatch {
     pub pattern: String,
     pub start: usize,
     pub end: usize,
     pub token: String,
+    pub data: MatchData,
 }
 
 impl Ord for BaseMatch {
@@ -56,8 +124,7 @@ fn master_dictionary_match(password: &str) -> Vec<BaseMatch> {
                  .collect::<Vec<BaseMatch>>()
 }
 
-fn dictionary_match(password: &str, 
-                        dictionary: &[&'static str]) -> Vec<BaseMatch> {
+fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
 
     let mut matches: Vec<BaseMatch> = Vec::new();
     let lower = password.to_lowercase();
@@ -70,6 +137,7 @@ fn dictionary_match(password: &str,
                     start: i,
                     end: j,
                     token: slice.to_string(),
+                    data: MatchData::NoMatch,
                 });
                 return matches;
             }

@@ -69,6 +69,8 @@ impl Default for Feedback {
 /// formatted data
 #[derive(Default)]
 pub struct PasswordResult {
+    /// The password in question
+    pub password: String,
     /// Estimated guesses to crack password
     pub guesses: u32,
     /// Order of magnitude of guesses
