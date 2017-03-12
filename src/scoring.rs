@@ -1,34 +1,60 @@
 use result::PasswordResult;
 use matching::{BaseMatch, MatchData};
 use std::num;
+use std::collections::HashMap;
+
 
 const BRUTEFORCE_CARDINALITY: u32 = 10;
 const MIN_GUESSES_BEFORE_GROWING_SEQUENCE: u32 = 10000;
 const MIN_SUBMATCH_GUESSES_SINGLE_CHAR: u32 = 10;
 const MIN_SUBMATCH_GUESSES_MULTI_CHAR: u32 = 50;
 
-
+#[derive(Default)]
 struct OptimalMatch {
-    m: Vec<Option<BaseMatch>>,
-    pi: Vec<u32>,
-    g: Vec<u32>,
+    m: HashMap<usize, Vec<BaseMatch>>,
+    pi: HashMap<usize, Vec<u32>>,
+    g: HashMap<usize, Vec<u32>>,
 }
 
 impl OptimalMatch {
-    fn new(length: usize) -> OptimalMatch {
-        OptimalMatch {
-            pi: vec![0; length],
-            g: vec![1; length],
-            m: vec![None; length],
-        }
-    }
 
-    fn update(&self, pass: &str, m: &BaseMatch, l: usize) {
-        let pi = estimate_guesses(m, pass);
+    fn update(&mut self, pass: &str, m: &BaseMatch, l: usize) {
+        let k = m.end;
+
+        let mut pi = estimate_guesses(m, pass);
         if l > 1 {
-
+            assert!(self.pi.contains_key(&(m.start - 1)));
+            if let Some(p) = self.pi.get(&(m.start - 1)) {
+                pi *= *p.get((l - 1)).unwrap_or(&1u32);
+            }
         }
         let g = factorial(l as u32) * pi;
+        if self.g.contains_key(&k) {
+            let guesses = self.g.get_mut(&k).unwrap();
+            for (i, guess) in guesses.iter().enumerate() { 
+                if i > l {
+                    continue;
+                }
+                if *guess <= g {
+                    return;
+                }
+            }
+            // This differs from dropbox still working out if the empties are needed
+            guesses.push(g);
+        } else {
+            self.g.insert(k, vec![g]);
+        }
+        if self.pi.contains_key(&k) {
+            self.pi.get_mut(&k).unwrap().push(pi);
+        } else {
+            self.pi.insert(k, vec![pi]);
+        }
+
+     }
+
+    /// Stub which will return optimal sequence
+    fn unwind(&self) {
+
     }
 }
 
@@ -87,7 +113,7 @@ pub fn most_guessable_match_sequence(password: String,
                                      exclude_additive: bool)
                                      -> PasswordResult {
 
-    let mut optimal: OptimalMatch = OptimalMatch::new(password.len());
+    let mut optimal: OptimalMatch = { Default::default() };
     let chars = 0..password.len();
 
     let matches_by_end = chars.map(|x| matches.iter().filter(|y| y.end == x).collect::<Vec<_>>())
@@ -105,6 +131,7 @@ pub fn most_guessable_match_sequence(password: String,
         }
         // Bruteforce update
     }
+    optimal.unwind();
     // unwind optimal sequence
 
     // format result based on length
