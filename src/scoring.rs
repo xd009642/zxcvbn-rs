@@ -35,6 +35,29 @@ fn factorial(n: u32) -> u32 {
     result
 }
 
+fn nCk(mut n: u32, k: u32) -> u32 {
+    let result = if k > n {
+        0
+    } else if 0 == k {
+        1
+    } else {
+        (1..k + 1).fold(1, |acc, d| {
+            n -= 1;
+            (acc * (n + 1)) / d
+        })
+    };
+    result
+}
+
+#[test]
+fn nCk_test() {
+    println!("{}", nCk(2, 1));
+    assert!(nCk(2, 1) == 2);
+    assert!(nCk(2, 2) == 1);
+    assert!(nCk(2, 3) == 0);
+    assert!(nCk(85, 5) == 32801517);
+}
+
 
 pub fn most_guessable_match_sequence(password: String,
                                      matches: Vec<BaseMatch>,
