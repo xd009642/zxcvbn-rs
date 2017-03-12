@@ -34,7 +34,8 @@ pub enum Days {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MatchData {
-    NoMatch,
+    /// Used for matches which don't require metadata.
+    Plain,
     Dictionary {
         matched_word: String,
         rank: usize,
@@ -137,7 +138,7 @@ fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatc
                     start: i,
                     end: j,
                     token: slice.to_string(),
-                    data: MatchData::NoMatch,
+                    data: MatchData::Plain,
                 });
                 return matches;
             }

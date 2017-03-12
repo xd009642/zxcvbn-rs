@@ -1,5 +1,11 @@
 use result::PasswordResult;
-use matching::BaseMatch;
+use matching::{BaseMatch, MatchData};
+use std::num;
+
+const BRUTEFORCE_CARDINALITY: u32 = 10;
+const MIN_GUESSES_BEFORE_GROWING_SEQUENCE: u32 = 10000;
+const MIN_SUBMATCH_GUESSES_SINGLE_CHAR: u32 = 10;
+const MIN_SUBMATCH_GUESSES_MULTI_CHAR: u32 = 50;
 
 
 struct OptimalMatch {
@@ -17,7 +23,7 @@ impl OptimalMatch {
         }
     }
 
-    fn update(pass: String, m: BaseMatch, l: usize) {
+    fn update(&self, pass: &str, m: &BaseMatch, l: usize) {
         let pi = estimate_guesses(m, pass);
         if l > 1 {
 
@@ -33,6 +39,15 @@ fn factorial(n: u32) -> u32 {
         (2..(n + 1)).fold(1, |acc, x| acc * x)
     };
     result
+}
+
+#[test]
+fn factorial_test() {
+    assert!(factorial(0) == 1);
+    assert!(factorial(1) == 1);
+    assert!(factorial(2) == 2);
+    assert!(factorial(3) == 6);
+    assert!(factorial(10) == 3628800);
 }
 
 fn nCk(mut n: u32, k: u32) -> u32 {
@@ -51,13 +66,21 @@ fn nCk(mut n: u32, k: u32) -> u32 {
 
 #[test]
 fn nCk_test() {
-    println!("{}", nCk(2, 1));
     assert!(nCk(2, 1) == 2);
     assert!(nCk(2, 2) == 1);
     assert!(nCk(2, 3) == 0);
     assert!(nCk(85, 5) == 32801517);
 }
 
+fn bruteforce_match(password: String, start: usize, end: usize) -> BaseMatch {
+    BaseMatch { 
+        pattern: String::from("Bruteforce"), 
+        start: start,
+        end: end,
+        token: password[start..end].to_string(),
+        data: MatchData::Plain,
+    }
+}
 
 pub fn most_guessable_match_sequence(password: String,
                                      matches: Vec<BaseMatch>,
@@ -75,8 +98,9 @@ pub fn most_guessable_match_sequence(password: String,
         for m in matches_by_end[k].iter() {
             if m.start > 0 {
                 // update
+                
             } else {
-                // update base case
+                optimal.update(&password, m, 1);
             }
         }
         // Bruteforce update
@@ -84,11 +108,22 @@ pub fn most_guessable_match_sequence(password: String,
     // unwind optimal sequence
 
     // format result based on length
+    let guesses = if password.len() == 0 {
+        1u32
+    } else {
+        1u32
+    };
+    let g_log10 = (guesses as f64).log10();
 
-    PasswordResult { password: password.clone(), ..Default::default() }
+    PasswordResult { 
+        password: password.clone(), 
+        guesses: guesses,
+        guesses_log10: g_log10,
+        ..Default::default() 
+    }
 }
 
 
-fn estimate_guesses(m: BaseMatch, password: String) -> u32 {
-    0u32
+fn estimate_guesses(m: &BaseMatch, password: &str) -> u32 {
+    1u32
 }
