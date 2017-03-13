@@ -9,11 +9,17 @@ const MIN_GUESSES_BEFORE_GROWING_SEQUENCE: u32 = 10000;
 const MIN_SUBMATCH_GUESSES_SINGLE_CHAR: u32 = 10;
 const MIN_SUBMATCH_GUESSES_MULTI_CHAR: u32 = 50;
 
+
+struct MatchScores {
+    m: BaseMatch,
+    pi: u32,
+    g: u32,
+    length: usize,
+}
+
 #[derive(Default)]
 struct OptimalMatch {
-    m: HashMap<usize, Vec<BaseMatch>>,
-    pi: HashMap<usize, Vec<u32>>,
-    g: HashMap<usize, Vec<u32>>,
+    scores: HashMap<usize, Vec<MatchScores>>,
 }
 
 impl OptimalMatch {
@@ -23,38 +29,58 @@ impl OptimalMatch {
 
         let mut pi = estimate_guesses(m, pass);
         if l > 1 {
-            assert!(self.pi.contains_key(&(m.start - 1)));
-            if let Some(p) = self.pi.get(&(m.start - 1)) {
-                pi *= *p.get((l - 1)).unwrap_or(&1u32);
+            assert!(self.scores.contains_key(&(m.start - 1)));
+            if let Some(score_list) = self.scores.get(&(m.start - 1)) {
+                if let Some(s) = score_list.iter().find(|x| x.length == l - 1) {
+                    pi *= s.pi;
+                }
             }
         }
         let g = factorial(l as u32) * pi;
-        if self.g.contains_key(&k) {
-            let guesses = self.g.get_mut(&k).unwrap();
-            for (i, guess) in guesses.iter().enumerate() { 
-                if i > l {
+
+        if self.scores.contains_key(&k) {
+            let scores = self.scores.get_mut(&k).unwrap();
+            for scores in scores.iter() {
+                if scores.length > l {
                     continue;
-                }
-                if *guess <= g {
+                } else if scores.g <= g {
                     return;
                 }
             }
-            // This differs from dropbox still working out if the empties are needed
-            guesses.push(g);
         } else {
-            self.g.insert(k, vec![g]);
+            self.scores.insert(k, vec![]);
         }
-        if self.pi.contains_key(&k) {
-            self.pi.get_mut(&k).unwrap().push(pi);
-        } else {
-            self.pi.insert(k, vec![pi]);
-        }
-
+        
+        self.scores.get_mut(&k).unwrap().push(MatchScores {
+            m: m.clone(), 
+            g: g,
+            pi: pi,
+            length: l
+        });
      }
 
-    /// Stub which will return optimal sequence
-    fn unwind(&self) {
-
+    fn unwind(&self, n: usize) -> Vec<BaseMatch> {
+        let mut result: Vec<BaseMatch> = Vec::new();
+        result.reserve(1);
+        let mut k = n - 1;
+        let mut l = 0usize;
+        let mut g = u32::max_value();
+        for score in self.scores.get(&k).unwrap().iter() {
+            if score.g < g {
+                g = score.g;
+                l = score.length;
+            }
+        }
+        while k >= 0 {
+            if let Some(s) = self.scores.get(&k).unwrap().iter()
+                .find(|x| x.length == l) {
+                    let ref m = s.m;
+                    k = m.start - 1;
+                    result.insert(0, m.clone());
+                    l -= 1;
+                }
+        }
+        result
     }
 }
 
@@ -131,7 +157,7 @@ pub fn most_guessable_match_sequence(password: String,
         }
         // Bruteforce update
     }
-    optimal.unwind();
+    optimal.unwind(password.len());
     // unwind optimal sequence
 
     // format result based on length
