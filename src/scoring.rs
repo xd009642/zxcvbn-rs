@@ -2,7 +2,7 @@ use result::PasswordResult;
 use matching::{BaseMatch, MatchData};
 use std::num;
 use std::collections::HashMap;
-
+use std::cmp;
 
 const BRUTEFORCE_CARDINALITY: u32 = 10;
 const MIN_GUESSES_BEFORE_GROWING_SEQUENCE: u32 = 10000;
@@ -23,7 +23,6 @@ struct OptimalMatch {
 }
 
 impl OptimalMatch {
-
     fn update(&mut self, pass: &str, m: &BaseMatch, l: usize) {
         let k = m.end;
 
@@ -50,14 +49,14 @@ impl OptimalMatch {
         } else {
             self.scores.insert(k, vec![]);
         }
-        
+
         self.scores.get_mut(&k).unwrap().push(MatchScores {
-            m: m.clone(), 
+            m: m.clone(),
             g: g,
             pi: pi,
-            length: l
+            length: l,
         });
-     }
+    }
 
     fn unwind(&self, n: usize) -> Vec<BaseMatch> {
         let mut result: Vec<BaseMatch> = Vec::new();
@@ -72,13 +71,16 @@ impl OptimalMatch {
             }
         }
         while k >= 0 {
-            if let Some(s) = self.scores.get(&k).unwrap().iter()
-                .find(|x| x.length == l) {
-                    let ref m = s.m;
-                    k = m.start - 1;
-                    result.insert(0, m.clone());
-                    l -= 1;
-                }
+            if let Some(s) = self.scores
+                                 .get(&k)
+                                 .unwrap()
+                                 .iter()
+                                 .find(|x| x.length == l) {
+                let ref m = s.m;
+                k = m.start - 1;
+                result.insert(0, m.clone());
+                l -= 1;
+            }
         }
         result
     }
@@ -125,8 +127,8 @@ fn nCk_test() {
 }
 
 fn bruteforce_match(password: String, start: usize, end: usize) -> BaseMatch {
-    BaseMatch { 
-        pattern: String::from("Bruteforce"), 
+    BaseMatch {
+        pattern: String::from("Bruteforce"),
         start: start,
         end: end,
         token: password[start..end].to_string(),
@@ -139,7 +141,9 @@ pub fn most_guessable_match_sequence(password: String,
                                      exclude_additive: bool)
                                      -> PasswordResult {
 
-    let mut optimal: OptimalMatch = { Default::default() };
+    let mut optimal: OptimalMatch = {
+        Default::default()
+    };
     let chars = 0..password.len();
 
     let matches_by_end = chars.map(|x| matches.iter().filter(|y| y.end == x).collect::<Vec<_>>())
@@ -150,7 +154,7 @@ pub fn most_guessable_match_sequence(password: String,
         for m in matches_by_end[k].iter() {
             if m.start > 0 {
                 // update
-                
+
             } else {
                 optimal.update(&password, m, 1);
             }
@@ -168,15 +172,69 @@ pub fn most_guessable_match_sequence(password: String,
     };
     let g_log10 = (guesses as f64).log10();
 
-    PasswordResult { 
-        password: password.clone(), 
+    PasswordResult {
+        password: password.clone(),
         guesses: guesses,
         guesses_log10: g_log10,
-        ..Default::default() 
+        ..Default::default()
     }
 }
 
 
 fn estimate_guesses(m: &BaseMatch, password: &str) -> u32 {
+    // Here in coffeescript they dynamically add more struct fields to the
+    // match which exist in the result anyway. It just seems so wasteful.
+    // gonna think of something better but until then this will suffice.
+
+    let min_guesses = if m.token.len() < password.len() {
+        if m.token.len() == 1 {
+            MIN_SUBMATCH_GUESSES_SINGLE_CHAR
+        } else {
+            MIN_SUBMATCH_GUESSES_MULTI_CHAR
+        }
+    } else {
+        1u32
+    };
+
+    let estimation_funcs = [bruteforce_guesses,
+                            dictionary_guesses,
+                            repeat_guesses,
+                            sequence_guesses,
+                            regex_guesses,
+                            date_guesses,
+                            spatial_guesses];
+
+    let guesses = estimation_funcs.into_iter().map(|f| f(&m)).max();
+
+
+    cmp::max(guesses.unwrap_or(0u32), min_guesses)
+}
+
+
+fn bruteforce_guesses(m: &BaseMatch) -> u32 {
+    1u32
+}
+
+fn dictionary_guesses(m: &BaseMatch) -> u32 {
+    1u32
+}
+
+fn repeat_guesses(m: &BaseMatch) -> u32 {
+    1u32
+}
+
+fn sequence_guesses(m: &BaseMatch) -> u32 {
+    1u32
+}
+
+fn regex_guesses(m: &BaseMatch) -> u32 {
+    1u32
+}
+
+fn date_guesses(m: &BaseMatch) -> u32 {
+    1u32
+}
+
+fn spatial_guesses(m: &BaseMatch) -> u32 {
     1u32
 }
