@@ -62,10 +62,10 @@ impl OptimalMatch {
     fn unwind(&self, n: usize) -> Vec<BaseMatch> {
         let mut result: Vec<BaseMatch> = Vec::new();
         result.reserve(1);
-        let mut k = n - 1;
+        let mut k = (n as i32) - 1i32;
         let mut l = 0usize;
         let mut g = u32::max_value();
-        if let Some(scores) = self.scores.get(&k) {
+        if let Some(scores) = self.scores.get(&(k as usize)) {
             for score in scores.iter() {
                 if score.g < g {
                     g = score.g;
@@ -74,10 +74,10 @@ impl OptimalMatch {
             }
         }
         while k >= 0 {
-            if let Some(scores) = self.scores.get(&k) {
+            if let Some(scores) = self.scores.get(&(k as usize)) {
                 if let Some(s) = scores.iter().find(|x| x.length == l) {
                     let ref m = s.m;
-                    k = m.start - 1;
+                    k = (m.start as i32) - 1i32;
                     result.insert(0, m.clone());
                     l -= 1;
                 }
@@ -127,7 +127,8 @@ fn nCk_test() {
     assert!(nCk(85, 5) == 32801517);
 }
 
-fn bruteforce_match(password: String, start: usize, end: usize) -> BaseMatch {
+
+fn bruteforce_match(password: &String, start: usize, end: usize) -> BaseMatch {
     BaseMatch {
         pattern: String::from("Bruteforce"),
         start: start,
@@ -142,6 +143,7 @@ pub fn most_guessable_match_sequence(password: String,
                                      exclude_additive: bool)
                                      -> PasswordResult {
 
+    let pref = password.as_str();
     let mut optimal: OptimalMatch = {
         Default::default()
     };
@@ -153,21 +155,56 @@ pub fn most_guessable_match_sequence(password: String,
         for m in matches_by_end[k].iter() {
             if m.start > 0 {
                 // update
-
+                let lengths = optimal.scores
+                    .get(&(m.start - 1))
+                    .iter()
+                    .flat_map(|x| x.into_iter())
+                    .map(|x| x.length)
+                    .collect::<Vec<usize>>();
+                for l in lengths.iter() {
+                    optimal.update(pref, m, l + 1);
+                }
             } else {
-                optimal.update(&password, m, 1);
+                optimal.update(pref, m, 1);
             }
         }
         // Bruteforce update
+        let bm = bruteforce_match(&password, 0, k);
+        optimal.update(pref, &bm, 1);
+        for i in 1..k {
+            let bm = bruteforce_match(&password, i, k);
+
+            let lengths = optimal.scores
+                .get(&(i - 1))
+                .iter()
+                .flat_map(|x| x.into_iter())
+                .map(|x| (x.length, x.m.pattern.clone()))
+                .collect::<Vec<(usize, String)>>();
+
+            for l in lengths.iter() {
+                if l.1 == "Bruteforce".to_string() {
+                    continue;
+                }
+                optimal.update(pref, &bm, l.0 + 1);
+            }
+        }
     }
-    optimal.unwind(password.len());
+    let optimal_seq = optimal.unwind(password.len());
+    let optimal_length = optimal_seq.iter().count();
     // unwind optimal sequence
     
     // format result based on length
     let guesses = if password.len() == 0 {
         1u32
     } else {
-        1u32
+        let mut gs = 1u32;
+        if let Some(s) = optimal.scores.get(&(password.len() - 1)) {
+            let ms = s.get(optimal_length);
+            if ms.is_some() {
+                gs = ms.unwrap().g;
+            }
+        }
+        gs
     };
     let g_log10 = (guesses as f64).log10();
 
