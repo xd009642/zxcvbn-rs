@@ -1,13 +1,17 @@
 extern crate zxcvbn_rs;
 
-use zxcvbn_rs::matching;
+use zxcvbn_rs::{matching, scoring};
 use std::env;
 
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
     println!("Password is {}", password);
     let matches = matching::omnimatch(password.as_ref());
-    println!("Found matches {:?}", matches.len());
-    println!("Found matches \n{:?}\n", matches);
+    println!("Found {} matches \n{:?}\n",matches.len(), matches);
+    let best_sequence = scoring::most_guessable_match_sequence(password,
+                                                               matches, 
+                                                               false);
+
+    println!("Guesses are: {}", best_sequence.guesses);
 }
 
 fn main() {

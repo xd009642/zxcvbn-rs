@@ -3,6 +3,7 @@ use matching::{BaseMatch, MatchData};
 use std::num;
 use std::collections::HashMap;
 use std::cmp;
+use regex::Regex;
 
 const BRUTEFORCE_CARDINALITY: u32 = 10;
 const MIN_GUESSES_BEFORE_GROWING_SEQUENCE: u32 = 10000;
@@ -64,22 +65,22 @@ impl OptimalMatch {
         let mut k = n - 1;
         let mut l = 0usize;
         let mut g = u32::max_value();
-        for score in self.scores.get(&k).unwrap().iter() {
-            if score.g < g {
-                g = score.g;
-                l = score.length;
+        if let Some(scores) = self.scores.get(&k) {
+            for score in scores.iter() {
+                if score.g < g {
+                    g = score.g;
+                    l = score.length;
+                }
             }
         }
         while k >= 0 {
-            if let Some(s) = self.scores
-                                 .get(&k)
-                                 .unwrap()
-                                 .iter()
-                                 .find(|x| x.length == l) {
-                let ref m = s.m;
-                k = m.start - 1;
-                result.insert(0, m.clone());
-                l -= 1;
+            if let Some(scores) = self.scores.get(&k) {
+                if let Some(s) = scores.iter().find(|x| x.length == l) {
+                    let ref m = s.m;
+                    k = m.start - 1;
+                    result.insert(0, m.clone());
+                    l -= 1;
+                }
             }
         }
         result
@@ -145,10 +146,8 @@ pub fn most_guessable_match_sequence(password: String,
         Default::default()
     };
     let chars = 0..password.len();
-
     let matches_by_end = chars.map(|x| matches.iter().filter(|y| y.end == x).collect::<Vec<_>>())
                               .collect::<Vec<_>>();
-
 
     for k in 0..password.len() {
         for m in matches_by_end[k].iter() {
@@ -163,7 +162,7 @@ pub fn most_guessable_match_sequence(password: String,
     }
     optimal.unwind(password.len());
     // unwind optimal sequence
-
+    
     // format result based on length
     let guesses = if password.len() == 0 {
         1u32
@@ -232,7 +231,26 @@ fn dictionary_guesses(m: &BaseMatch) -> u32 {
 }
 
 fn uppercase_variations(m: &BaseMatch) -> u32 {
-    1u32
+    let token = m.token.as_str();
+    
+    if token.to_lowercase() == token {
+        return 1u32;
+    }
+    let first_upper = Regex::new(r"^[A-Z][^A=Z]+$").unwrap();
+    let last_upper = Regex::new(r"^[^A-Z]+[A-Z]$").unwrap();
+    if token.to_uppercase() == token || first_upper.is_match(token) ||
+       last_upper.is_match(token) {
+        return 2u32;
+    }
+
+    let ucount = token.chars().filter(|x| x.is_uppercase()).count() as u32;
+    let lcount = token.chars().filter(|x| x.is_lowercase()).count() as u32;
+    let mut variations = 0u32;
+
+    for i in 1..(cmp::min(ucount, lcount)+1) {
+        variations += nCk(ucount+lcount, i);
+    }
+    variations
 }
 
 fn l33t_variations(m: &BaseMatch) -> u32 {
