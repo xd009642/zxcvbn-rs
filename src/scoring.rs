@@ -195,29 +195,50 @@ fn estimate_guesses(m: &BaseMatch, password: &str) -> u32 {
     } else {
         1u32
     };
-
-    let estimation_funcs = [bruteforce_guesses,
-                            dictionary_guesses,
-                            repeat_guesses,
-                            sequence_guesses,
-                            regex_guesses,
-                            date_guesses,
-                            spatial_guesses];
-
-    let guesses = estimation_funcs.into_iter().map(|f| f(&m)).max();
-
-
-    cmp::max(guesses.unwrap_or(0u32), min_guesses)
+    let guesses = match m.pattern.as_str() {
+        "Bruteforce" => bruteforce_guesses(&m),
+        "Dictionary" => dictionary_guesses(&m),
+        "Repeat" => repeat_guesses(&m),
+        "Sequence" => sequence_guesses(&m),
+        "Regex" => regex_guesses(&m),
+        "Date" => date_guesses(&m),
+        "Spatial" => spatial_guesses(&m),
+        _ => 0u32,
+    };
+    cmp::max(guesses, min_guesses)
 }
 
 
 fn bruteforce_guesses(m: &BaseMatch) -> u32 {
-    1u32
+    let min_guesses = if m.token.len() == 1 {
+        MIN_SUBMATCH_GUESSES_SINGLE_CHAR + 1
+    } else {
+        MIN_SUBMATCH_GUESSES_MULTI_CHAR + 1
+    };
+    cmp::max(min_guesses,
+             BRUTEFORCE_CARDINALITY.pow(m.token.len() as u32))
 }
 
 fn dictionary_guesses(m: &BaseMatch) -> u32 {
+    match m.data {
+        MatchData::Dictionary {ref matched_word, rank, ref dictionary_name, reversed, l33t } => {
+            let urank = uppercase_variations(m);
+            let l33t_rank = l33t_variations(m);
+            (rank as u32) * urank * l33t_rank
+        }
+        _ => 0u32,
+    }
+
+}
+
+fn uppercase_variations(m: &BaseMatch) -> u32 {
     1u32
 }
+
+fn l33t_variations(m: &BaseMatch) -> u32 {
+    1u32
+}
+
 
 fn repeat_guesses(m: &BaseMatch) -> u32 {
     1u32
