@@ -2,7 +2,7 @@
 
 /// Provides estimations of the time to crack a password given the number of
 /// guesses required to crack it
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct CrackTimes {
     /// Online attack on a service with rate limiting 
     /// (100 per hour)
@@ -19,7 +19,7 @@ pub struct CrackTimes {
 }
 
 impl CrackTimes {
-    fn new(guesses: u32) -> CrackTimes {
+    pub fn new(guesses: u32) -> CrackTimes {
         let f_guess = guesses as f32;
         let ot = f_guess / (100.0f32 / 3600.0f32);
         let ont = f_guess / 10.0f32;
@@ -34,6 +34,7 @@ impl CrackTimes {
     }
 }
 
+#[derive(Debug)]
 pub enum PasswordScore {
     VeryWeak = 0,
     Weak = 1,
@@ -51,6 +52,18 @@ pub struct Feedback {
     description: String,
     /// Suggests how the password can be modified. e.g. add another word
     suggestions: String,
+}
+
+pub fn get_feedback(guesses: u32) -> PasswordScore {
+    let guesses = guesses as f32;
+    let DELTA = 5f32;
+    match guesses {
+        _ if guesses < 1e3 + DELTA => PasswordScore::VeryWeak,
+        _ if guesses < 1e6 + DELTA => PasswordScore::Weak,
+        _ if guesses < 1e8 + DELTA => PasswordScore::Medium,
+        _ if guesses < 1e10 + DELTA => PasswordScore::Strong,
+        _ => PasswordScore::VeryStrong
+    }
 }
 
 impl Default for Feedback {

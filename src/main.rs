@@ -1,6 +1,6 @@
 extern crate zxcvbn_rs;
 
-use zxcvbn_rs::{matching, scoring};
+use zxcvbn_rs::{matching, scoring, result};
 use std::env;
 
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
@@ -10,8 +10,11 @@ fn zxcvbn(password: String, user_dictionary: Vec<String>) {
     let best_sequence = scoring::most_guessable_match_sequence(password,
                                                                matches, 
                                                                false);
-
+    let attack_times = result::CrackTimes::new(best_sequence.guesses);
+    let feedback = result::get_feedback(best_sequence.guesses);
+    println!("{:?}", feedback);
     println!("Guesses are: {}", best_sequence.guesses);
+    println!("Attack times in seconds\n{:?}", attack_times);
 }
 
 fn main() {
