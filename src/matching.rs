@@ -130,15 +130,22 @@ fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatc
     let mut matches: Vec<BaseMatch> = Vec::new();
     let lower = password.to_lowercase();
     for i in 0..password.len() {
-        for j in i..password.len() + 1 {
-            let slice = &lower[i..j];
+        for j in i..password.len(){
+            let slice = &lower[i..j+1];
             if let Some(pass) = dictionary.iter().position(|&x| x == slice) {
+                let dict = MatchData::Dictionary{ 
+                    matched_word: slice.to_string(),
+                    rank: pass + 1,
+                    dictionary_name: "UNKNOWN".to_string(),
+                    reversed: false,
+                    l33t: false,
+                };
                 matches.push(BaseMatch {
                     pattern: String::from("Dictionary"),
                     start: i,
                     end: j,
                     token: slice.to_string(),
-                    data: MatchData::Plain,
+                    data: dict,
                 });
                 return matches;
             }

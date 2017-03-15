@@ -132,8 +132,8 @@ fn bruteforce_match(password: &String, start: usize, end: usize) -> BaseMatch {
     BaseMatch {
         pattern: String::from("Bruteforce"),
         start: start,
-        end: end,
-        token: password[start..end].to_string(),
+        end: end + 1,
+        token: password[start..end+1].to_string(),
         data: MatchData::Plain,
     }
 }
@@ -241,7 +241,6 @@ fn estimate_guesses(m: &BaseMatch, password: &str) -> u32 {
         "Spatial" => spatial_guesses(&m),
         _ => 0u32,
     };
-    println!("Guesses for {} : {} using {}", m.token, guesses, m.pattern);
 
     cmp::max(guesses, min_guesses)
 }
