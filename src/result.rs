@@ -6,23 +6,23 @@
 pub struct CrackTimes {
     /// Online attack on a service with rate limiting 
     /// (100 per hour)
-    online_throttling: f32,
+    online_throttling: f64,
     /// Offline attack on a service lacking or with compromised rate limiting 
     /// (10 per second)
-    online_no_throttling: f32,
+    online_no_throttling: f64,
     /// Offline attack, assumes multiple attackers with a slow hash function
     /// (1e4 per second)
-    offline_slow_hashing: f32,
+    offline_slow_hashing: f64,
     /// Offline attack with fast hash and multiple machines
     /// (1e10 per second)
-    offline_fast_hashing: f32,
+    offline_fast_hashing: f64,
 }
 
 impl CrackTimes {
-    pub fn new(guesses: u32) -> CrackTimes {
-        let f_guess = guesses as f32;
-        let ot = f_guess / (100.0f32 / 3600.0f32);
-        let ont = f_guess / 10.0f32;
+    pub fn new(guesses: u64) -> CrackTimes {
+        let f_guess = guesses as f64;
+        let ot = f_guess / (100.0f64 / 3600.0f64);
+        let ont = f_guess / 10.0f64;
         let osh = f_guess / 1e4;
         let ofh = f_guess / 1e10;
         CrackTimes {
@@ -54,9 +54,9 @@ pub struct Feedback {
     suggestions: String,
 }
 
-pub fn get_feedback(guesses: u32) -> PasswordScore {
-    let guesses = guesses as f32;
-    let DELTA = 5f32;
+pub fn get_feedback(guesses: u64) -> PasswordScore {
+    let guesses = guesses as f64;
+    let DELTA = 5f64;
     match guesses {
         _ if guesses < 1e3 + DELTA => PasswordScore::VeryWeak,
         _ if guesses < 1e6 + DELTA => PasswordScore::Weak,
@@ -85,7 +85,7 @@ pub struct PasswordResult {
     /// The password in question
     pub password: String,
     /// Estimated guesses to crack password
-    pub guesses: u32,
+    pub guesses: u64,
     /// Order of magnitude of guesses
     pub guesses_log10: f64,
     /// Estimation of physical time to crack password

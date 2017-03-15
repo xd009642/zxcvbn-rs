@@ -5,6 +5,25 @@ use std::iter::Iterator;
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
+lazy_static! {
+    static ref L33T_TABLE: HashMap<char, &'static str> = {
+        let mut m = HashMap::new();
+        m.insert('a', "4@");
+        m.insert('b', "8");
+        m.insert('c', "({[<");
+        m.insert('e', "3");
+        m.insert('g', "69");
+        m.insert('i', "1!|");
+        m.insert('l', "1!7");
+        m.insert('o', "0");
+        m.insert('s', "$5");
+        m.insert('t', "+7");
+        m.insert('x', "%");
+        m.insert('z', "2");
+        m
+    };
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Months {
     January,
@@ -125,7 +144,8 @@ fn master_dictionary_match(password: &str) -> Vec<BaseMatch> {
                  .collect::<Vec<BaseMatch>>()
 }
 
-fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
+fn dictionary_match(password: &str, 
+                    dictionary: &[&'static str]) -> Vec<BaseMatch> {
 
     let mut matches: Vec<BaseMatch> = Vec::new();
     let lower = password.to_lowercase();
