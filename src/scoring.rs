@@ -241,6 +241,8 @@ fn estimate_guesses(m: &BaseMatch, password: &str) -> u32 {
         "Spatial" => spatial_guesses(&m),
         _ => 0u32,
     };
+    println!("Guesses for {} : {} using {}", m.token, guesses, m.pattern);
+
     cmp::max(guesses, min_guesses)
 }
 
@@ -260,7 +262,12 @@ fn dictionary_guesses(m: &BaseMatch) -> u32 {
         MatchData::Dictionary {ref matched_word, rank, ref dictionary_name, reversed, l33t } => {
             let urank = uppercase_variations(m);
             let l33t_rank = l33t_variations(m);
-            (rank as u32) * urank * l33t_rank
+            let reversed_rank = if reversed {
+                2u32
+            } else {
+                1u32
+            };
+            (rank as u32) * urank * l33t_rank * reversed_rank
         }
         _ => 0u32,
     }
