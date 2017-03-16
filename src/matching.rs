@@ -125,6 +125,7 @@ impl PartialEq for BaseMatch {
 
 /// Matches the password against every matcher returning the matches
 pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
+    
     master_dictionary_match(password)
 }
 
@@ -170,6 +171,26 @@ fn dictionary_match(password: &str,
                 return matches;
             }
         }
+    }
+    matches.sort();
+    matches
+}
+
+
+fn reverse_dictionary_match(password: &str,
+                            dictionary: &[&'static str]) -> Vec<BaseMatch> {
+    let length = password.chars().count();
+    let reversed = password.chars().rev().collect::<String>();
+
+    let mut matches = dictionary_match(reversed.as_ref(), dictionary);
+    for m in matches.iter_mut() {
+
+        //m.data.reversed = true;
+        m.token = m.token.chars().rev().collect::<String>();
+        
+        let (start, end) = (length - 1 - m.end, length - 1 - m.start);
+        m.start = start;
+        m.end = end;
     }
     matches.sort();
     matches
