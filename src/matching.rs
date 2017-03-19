@@ -1,4 +1,4 @@
-use std::env;
+use std::cmp;
 use std::cmp::Ordering;
 use std::iter::Iterator;
 
@@ -6,20 +6,32 @@ include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
 lazy_static! {
+    /// This map goes the other way in the original implementation.
+    /// However, this complicates the logic and requires another map to be made
+    /// inside the l33t_dictionary_match. This was deemed a cleaner and simpler
+    /// implementation.
     static ref L33T_TABLE: HashMap<char, &'static str> = {
         let mut m = HashMap::new();
-        m.insert('a', "4@");
-        m.insert('b', "8");
-        m.insert('c', "({[<");
-        m.insert('e', "3");
-        m.insert('g', "69");
-        m.insert('i', "1!|");
-        m.insert('l', "1!7");
-        m.insert('o', "0");
-        m.insert('s', "$5");
-        m.insert('t', "+7");
-        m.insert('x', "%");
-        m.insert('z', "2");
+        m.insert('4', "a");
+        m.insert('@', "a");
+        m.insert('8', "b");
+        m.insert('(', "c");
+        m.insert('{', "c");
+        m.insert('[', "c");
+        m.insert('<', "c");
+        m.insert('3', "e");
+        m.insert('6', "g");
+        m.insert('9', "g");
+        m.insert('1', "il");
+        m.insert('!', "il");
+        m.insert('|', "i");
+        m.insert('7', "lt");
+        m.insert('0', "o");
+        m.insert('$', "s");
+        m.insert('5', "s");
+        m.insert('+', "t");
+        m.insert('%', "x");
+        m.insert('2', "z");
         m
     };
 }
@@ -177,8 +189,8 @@ fn dictionary_match(password: &str,
 }
 
 
-fn reverse_dictionary_match(password: &str,
-                            dictionary: &[&'static str]) -> Vec<BaseMatch> {
+pub fn reverse_dictionary_match(password: &str,
+                                dictionary: &[&'static str]) -> Vec<BaseMatch> {
     let length = password.chars().count();
     let reversed = password.chars().rev().collect::<String>();
 
@@ -193,5 +205,38 @@ fn reverse_dictionary_match(password: &str,
         m.end = end;
     }
     matches.sort();
+    matches
+}
+
+
+fn replace_single_l33t_char(c: &char) -> char {
+    let res = L33T_TABLE.get(c);
+    match res {
+        Some(s) => { 
+            if s.chars().count() == 1 {
+                s.chars().nth(0).unwrap_or(*c)
+            } else {
+                *c
+            }
+        },
+        None => *c
+    }
+}
+
+/// l33t match assumes that a symbol which can mean multiple letters will only
+/// be used for one of those letters during a match.
+pub fn l33t_match(password: &str,
+                  dictionary: &[&'static str]) -> Vec<BaseMatch> {
+    
+    let mut matches: Vec<BaseMatch> =Vec::new();
+
+    // First we do all the simple subs. Then go through permutations
+    let partial_sub:String = password.chars()
+                                     .map(|c| replace_single_l33t_char(&c))
+                                     .collect();
+
+    println!("{}", partial_sub);
+    
+
     matches
 }
