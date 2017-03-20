@@ -165,6 +165,7 @@ fn dictionary_match(password: &str,
     for i in 0..password.len() {
         for j in i..password.len(){
             let slice = &lower[i..j+1];
+            println!("SLICE {}", slice);
             if let Some(pass) = dictionary.iter().position(|&x| x == slice) {
                 let dict = MatchData::Dictionary{ 
                     matched_word: slice.to_string(),
@@ -180,7 +181,6 @@ fn dictionary_match(password: &str,
                     token: slice.to_string(),
                     data: dict,
                 });
-                return matches;
             }
         }
     }
@@ -197,15 +197,39 @@ pub fn reverse_dictionary_match(password: &str,
     let mut matches = dictionary_match(reversed.as_ref(), dictionary);
     for m in matches.iter_mut() {
 
-        //m.data.reversed = true;
         m.token = m.token.chars().rev().collect::<String>();
-        
         let (start, end) = (length - 1 - m.end, length - 1 - m.start);
         m.start = start;
         m.end = end;
+
+        match m.data {
+            MatchData::Dictionary{ref mut reversed, ..} => {
+                *reversed = true        
+            },
+            _ => {},
+        }
     }
     matches.sort();
     matches
+}
+
+#[test]
+fn reverse_test() {
+    let m = reverse_dictionary_match("drowssap", &["password"]);
+    assert_eq!(m.len(), 1);
+
+    let ref temp = m[0];
+    assert_eq!("drowssap", temp.token);
+    match temp.data {
+        MatchData::Dictionary{ref matched_word, ref rank, ref dictionary_name, 
+            ref reversed, ref l33t} => {
+            assert_eq!(*reversed, true);
+            assert_eq!(*matched_word, "password");
+            assert_eq!(*rank, 1);
+            assert_eq!(*l33t, false);
+        },
+        _ => assert!(false),
+    }
 }
 
 
@@ -235,8 +259,27 @@ pub fn l33t_match(password: &str,
                                      .map(|c| replace_single_l33t_char(&c))
                                      .collect();
 
-    println!("{}", partial_sub);
+    let remaining_l33ts = partial_sub.chars()
+                                     .fold(0u32, |acc, c| acc + L33T_TABLE.contains_key(&c) as u32);
     
-
+    if remaining_l33ts == 0 && partial_sub != password {
+        let mut tm = dictionary_match(partial_sub.as_ref(), dictionary);
+        for m in tm.iter_mut() {
+            // Fix the metadata. 
+        }
+        matches.append(&mut tm);
+    } else if remaining_l33ts > 0 {
+        // Do the permutations!
+        let sub_table = L33T_TABLE.iter()
+                                  .filter(|&(k, v)| partial_sub.contains(*k))
+                                  .collect::<Vec<(&char, &&str)>>();
+    }
+    matches.sort();
     matches
+}
+
+#[test]
+fn l33t_match_test() {
+    let m = l33t_match("pa$$w0rd", &["password", "pass"]);
+    assert_eq!(m.len(), 2);
 }
