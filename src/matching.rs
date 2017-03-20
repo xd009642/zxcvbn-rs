@@ -165,7 +165,6 @@ fn dictionary_match(password: &str,
     for i in 0..password.len() {
         for j in i..password.len(){
             let slice = &lower[i..j+1];
-            println!("SLICE {}", slice);
             if let Some(pass) = dictionary.iter().position(|&x| x == slice) {
                 let dict = MatchData::Dictionary{ 
                     matched_word: slice.to_string(),
@@ -265,7 +264,14 @@ pub fn l33t_match(password: &str,
     if remaining_l33ts == 0 && partial_sub != password {
         let mut tm = dictionary_match(partial_sub.as_ref(), dictionary);
         for m in tm.iter_mut() {
-            // Fix the metadata. 
+            // Fix the metadata.
+            m.token = password[m.start..(m.end+1)].to_string();
+            match m.data {
+                MatchData::Dictionary{ref mut l33t, ..} => {
+                    *l33t = true;
+                },
+                _ => {},
+            }
         }
         matches.append(&mut tm);
     } else if remaining_l33ts > 0 {
@@ -282,4 +288,12 @@ pub fn l33t_match(password: &str,
 fn l33t_match_test() {
     let m = l33t_match("pa$$w0rd", &["password", "pass"]);
     assert_eq!(m.len(), 2);
+
+    for temp in m.iter() {
+
+        match temp.data {
+            MatchData::Dictionary{ref l33t, ..} => assert_eq!(*l33t, true),
+            _ => assert!(false),
+        }
+    }
 }
