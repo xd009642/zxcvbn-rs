@@ -62,7 +62,7 @@ pub fn get_feedback(guesses: u64) -> PasswordScore {
         _ if guesses < 1e6 + DELTA => PasswordScore::Weak,
         _ if guesses < 1e8 + DELTA => PasswordScore::Medium,
         _ if guesses < 1e10 + DELTA => PasswordScore::Strong,
-        _ => PasswordScore::VeryStrong
+        _ => PasswordScore::VeryStrong,
     }
 }
 

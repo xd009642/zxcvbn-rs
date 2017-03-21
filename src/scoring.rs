@@ -133,7 +133,7 @@ fn bruteforce_match(password: &String, start: usize, end: usize) -> BaseMatch {
         pattern: String::from("Bruteforce"),
         start: start,
         end: end + 1,
-        token: password[start..end+1].to_string(),
+        token: password[start..end + 1].to_string(),
         data: MatchData::Plain,
     }
 }
@@ -156,11 +156,11 @@ pub fn most_guessable_match_sequence(password: String,
             if m.start > 0 {
                 // update
                 let lengths = optimal.scores
-                    .get(&(m.start - 1))
-                    .iter()
-                    .flat_map(|x| x.into_iter())
-                    .map(|x| x.length)
-                    .collect::<Vec<usize>>();
+                                     .get(&(m.start - 1))
+                                     .iter()
+                                     .flat_map(|x| x.into_iter())
+                                     .map(|x| x.length)
+                                     .collect::<Vec<usize>>();
                 for l in lengths.iter() {
                     optimal.update(pref, m, l + 1);
                 }
@@ -175,11 +175,11 @@ pub fn most_guessable_match_sequence(password: String,
             let bm = bruteforce_match(&password, i, k);
 
             let lengths = optimal.scores
-                .get(&(i - 1))
-                .iter()
-                .flat_map(|x| x.into_iter())
-                .map(|x| (x.length, x.m.pattern.clone()))
-                .collect::<Vec<(usize, String)>>();
+                                 .get(&(i - 1))
+                                 .iter()
+                                 .flat_map(|x| x.into_iter())
+                                 .map(|x| (x.length, x.m.pattern.clone()))
+                                 .collect::<Vec<(usize, String)>>();
 
             for l in lengths.iter() {
                 if l.1 == "Bruteforce".to_string() {
@@ -192,7 +192,7 @@ pub fn most_guessable_match_sequence(password: String,
     let optimal_seq = optimal.unwind(password.len());
     let optimal_length = optimal_seq.iter().count();
     // unwind optimal sequence
-    
+
     // format result based on length
     let guesses = if password.len() == 0 {
         1u64
@@ -275,14 +275,13 @@ fn dictionary_guesses(m: &BaseMatch) -> u64 {
 
 fn uppercase_variations(m: &BaseMatch) -> u64 {
     let token = m.token.as_str();
-    
+
     if token.to_lowercase() == token {
         return 1u64;
     }
     let first_upper = Regex::new(r"^[A-Z][^A=Z]+$").unwrap();
     let last_upper = Regex::new(r"^[^A-Z]+[A-Z]$").unwrap();
-    if token.to_uppercase() == token || first_upper.is_match(token) ||
-       last_upper.is_match(token) {
+    if token.to_uppercase() == token || first_upper.is_match(token) || last_upper.is_match(token) {
         return 2u64;
     }
 
@@ -290,8 +289,8 @@ fn uppercase_variations(m: &BaseMatch) -> u64 {
     let lcount = token.chars().filter(|x| x.is_lowercase()).count() as u64;
     let mut variations = 0u64;
 
-    for i in 1..(cmp::min(ucount, lcount)+1) {
-        variations += nCk(ucount+lcount, i);
+    for i in 1..(cmp::min(ucount, lcount) + 1) {
+        variations += nCk(ucount + lcount, i);
     }
     variations
 }

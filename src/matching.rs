@@ -1,6 +1,7 @@
 use std::cmp;
 use std::cmp::Ordering;
 use std::iter::Iterator;
+use std::collections::HashSet;
 
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
@@ -137,7 +138,7 @@ impl PartialEq for BaseMatch {
 
 /// Matches the password against every matcher returning the matches
 pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
-    
+
     master_dictionary_match(password)
 }
 
@@ -157,16 +158,15 @@ fn master_dictionary_match(password: &str) -> Vec<BaseMatch> {
                  .collect::<Vec<BaseMatch>>()
 }
 
-fn dictionary_match(password: &str, 
-                    dictionary: &[&'static str]) -> Vec<BaseMatch> {
+fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
 
     let mut matches: Vec<BaseMatch> = Vec::new();
     let lower = password.to_lowercase();
     for i in 0..password.len() {
-        for j in i..password.len(){
-            let slice = &lower[i..j+1];
+        for j in i..password.len() {
+            let slice = &lower[i..j + 1];
             if let Some(pass) = dictionary.iter().position(|&x| x == slice) {
-                let dict = MatchData::Dictionary{ 
+                let dict = MatchData::Dictionary {
                     matched_word: slice.to_string(),
                     rank: pass + 1,
                     dictionary_name: "UNKNOWN".to_string(),
@@ -187,9 +187,20 @@ fn dictionary_match(password: &str,
     matches
 }
 
+#[test]
+fn dictionary_test() {
+    let m = dictionary_match("password", &["pass", "password", "dave"]);
+    assert_eq!(m.len(), 2);
+    for temp in m.iter() {
+        match temp.data {
+            // Simple test
+            MatchData::Dictionary{ref matched_word, ..} => assert!(matched_word != "dave"),
+            _ => assert!(false),
+        }
+    }
+}
 
-pub fn reverse_dictionary_match(password: &str,
-                                dictionary: &[&'static str]) -> Vec<BaseMatch> {
+pub fn reverse_dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
     let length = password.chars().count();
     let reversed = password.chars().rev().collect::<String>();
 
@@ -202,10 +213,8 @@ pub fn reverse_dictionary_match(password: &str,
         m.end = end;
 
         match m.data {
-            MatchData::Dictionary{ref mut reversed, ..} => {
-                *reversed = true        
-            },
-            _ => {},
+            MatchData::Dictionary{ref mut reversed, ..} => *reversed = true,
+            _ => {}
         }
     }
     matches.sort();
@@ -226,7 +235,7 @@ fn reverse_test() {
             assert_eq!(*matched_word, "password");
             assert_eq!(*rank, 1);
             assert_eq!(*l33t, false);
-        },
+        }
         _ => assert!(false),
     }
 }
@@ -235,50 +244,95 @@ fn reverse_test() {
 fn replace_single_l33t_char(c: &char) -> char {
     let res = L33T_TABLE.get(c);
     match res {
-        Some(s) => { 
+        Some(s) => {
             if s.chars().count() == 1 {
                 s.chars().nth(0).unwrap_or(*c)
             } else {
                 *c
             }
-        },
-        None => *c
+        }
+        None => *c,
     }
+}
+
+
+fn check_l33t_sub(password: &str, sub: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
+    let mut tm = dictionary_match(sub, dictionary);
+    for m in tm.iter_mut() {
+        m.token = password[m.start..(m.end + 1)].to_string();
+        match m.data {
+            MatchData::Dictionary{ref mut l33t, ..} => *l33t = true,
+            _ => {}
+        }
+    }
+    tm
 }
 
 /// l33t match assumes that a symbol which can mean multiple letters will only
 /// be used for one of those letters during a match.
-pub fn l33t_match(password: &str,
-                  dictionary: &[&'static str]) -> Vec<BaseMatch> {
-    
-    let mut matches: Vec<BaseMatch> =Vec::new();
+/// Behaviour slightly differs from dropbox on this currently
+pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
+
+    let mut matches: Vec<BaseMatch> = Vec::new();
 
     // First we do all the simple subs. Then go through permutations
-    let partial_sub:String = password.chars()
-                                     .map(|c| replace_single_l33t_char(&c))
-                                     .collect();
+    let partial_sub: String = password.chars()
+                                      .map(|c| replace_single_l33t_char(&c))
+                                      .collect();
 
     let remaining_l33ts = partial_sub.chars()
                                      .fold(0u32, |acc, c| acc + L33T_TABLE.contains_key(&c) as u32);
-    
+
     if remaining_l33ts == 0 && partial_sub != password {
-        let mut tm = dictionary_match(partial_sub.as_ref(), dictionary);
-        for m in tm.iter_mut() {
-            // Fix the metadata.
-            m.token = password[m.start..(m.end+1)].to_string();
-            match m.data {
-                MatchData::Dictionary{ref mut l33t, ..} => {
-                    *l33t = true;
-                },
-                _ => {},
-            }
-        }
+
+        let mut tm = check_l33t_sub(password, partial_sub.as_ref(), dictionary);
         matches.append(&mut tm);
     } else if remaining_l33ts > 0 {
-        // Do the permutations!
-        let sub_table = L33T_TABLE.iter()
-                                  .filter(|&(k, v)| partial_sub.contains(*k))
-                                  .collect::<Vec<(&char, &&str)>>();
+        let subtable = L33T_TABLE.iter()
+                                 .filter(|&(k, v)| partial_sub.contains(*k))
+                                 .map(|(k, v)| (*k, *v))
+                                 .collect::<Vec<(char, &str)>>();
+
+        let sizes = subtable.iter()
+                            .map(|&(k, v)| (*v).chars().count())
+                            .collect::<Vec<usize>>();
+
+        let mut current = 0;
+        let mut indexes: Vec<usize> = vec![0; sizes.len()];
+        let mut done = false;
+        while current != sizes.len() {
+
+            let sub = subtable.iter()
+                              .enumerate()
+                              .map(|(i, &(k, v))| (v.chars().nth(indexes[i]).unwrap(), k))
+                              .collect::<HashMap<char, char>>();
+            
+            if sub.len() == sizes.len() {
+                let sub = sub.iter()
+                             .map(|(k, v)| (*v, *k))
+                             .collect::<HashMap<char, char>>();
+
+                let full_sub = partial_sub.chars()
+                                          .map(|c| {
+                                              match sub.get(&c) {
+                                                  Some(v) => *v,
+                                                  None => c,
+                                              }
+                                          })
+                                          .collect::<String>();
+                let mut tm = check_l33t_sub(password, full_sub.as_ref(), dictionary);
+                matches.append(&mut tm);
+            }
+
+            indexes[current] += 1;
+            if indexes[current] == sizes[current] {
+                indexes[current] = 0;
+                current += 1;
+                if current < sizes.len() {
+                    indexes[current] += 1;
+                }
+            }
+        }
     }
     matches.sort();
     matches
@@ -296,4 +350,8 @@ fn l33t_match_test() {
             _ => assert!(false),
         }
     }
+
+    let m = l33t_match("!llus1on", &["illusion"]);
+
+    assert_eq!(m.len(), 0);
 }
