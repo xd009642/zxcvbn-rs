@@ -258,7 +258,7 @@ fn bruteforce_guesses(m: &BaseMatch) -> u64 {
 
 fn dictionary_guesses(m: &BaseMatch) -> u64 {
     match m.data {
-        MatchData::Dictionary {ref matched_word, rank, ref dictionary_name, reversed, l33t } => {
+        MatchData::Dictionary {rank, reversed, ..} => {
             let urank = uppercase_variations(m);
             let l33t_rank = l33t_variations(m);
             let reversed_rank = if reversed {

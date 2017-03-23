@@ -65,6 +65,12 @@ pub enum Days {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct L33tData {
+    l33t_subs: HashMap<char, String>,
+
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MatchData {
     /// Used for matches which don't require metadata.
     Plain,
@@ -73,7 +79,7 @@ pub enum MatchData {
         rank: usize,
         dictionary_name: String,
         reversed: bool,
-        l33t: bool,
+        l33t: Option<L33tData>,
     },
     Spatial {
         graph: String,
@@ -84,9 +90,6 @@ pub enum MatchData {
         base_token: String,
         base_guesses: usize,
         repeat_count: usize,
-    },
-    L33t {
-        l33t: bool,
     },
     Sequence {
         name: String,
@@ -171,7 +174,7 @@ fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatc
                     rank: pass + 1,
                     dictionary_name: "UNKNOWN".to_string(),
                     reversed: false,
-                    l33t: false,
+                    l33t: None,
                 };
                 matches.push(BaseMatch {
                     pattern: String::from("Dictionary"),
@@ -234,7 +237,7 @@ fn reverse_test() {
             assert_eq!(*reversed, true);
             assert_eq!(*matched_word, "password");
             assert_eq!(*rank, 1);
-            assert_eq!(*l33t, false);
+            assert_eq!(*l33t, None);
         }
         _ => assert!(false),
     }
@@ -261,8 +264,25 @@ fn check_l33t_sub(password: &str, sub: &str, dictionary: &[&'static str]) -> Vec
     for m in tm.iter_mut() {
         m.token = password[m.start..(m.end + 1)].to_string();
         match m.data {
-            MatchData::Dictionary{ref mut l33t, ..} => *l33t = true,
-            _ => {}
+            MatchData::Dictionary{ref mut l33t, ref matched_word, ..} => {
+                let mut tmap:HashMap<char, String> = HashMap::new();
+                for (k, v) in password.chars().zip(matched_word.chars()) {
+                    if k == v {
+                        continue;
+                    }
+                    if tmap.contains_key(&k) {
+                        let c_as_s = v.to_string();
+                        let ref mut value = tmap.get_mut(&k).unwrap();
+                        if false == value.contains(v) {
+                            value.push_str(c_as_s.as_ref());
+                        }
+                    } else {
+                        tmap.insert(k, v.to_string());
+                    }
+                }
+                *l33t = Some(L33tData { l33t_subs: tmap });
+            },
+            _ => {},
         }
     }
     tm
@@ -287,6 +307,7 @@ pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch>
 
         let mut tm = check_l33t_sub(password, partial_sub.as_ref(), dictionary);
         matches.append(&mut tm);
+
     } else if remaining_l33ts > 0 {
         let subtable = L33T_TABLE.iter()
                                  .filter(|&(k, v)| partial_sub.contains(*k))
@@ -346,7 +367,9 @@ fn l33t_match_test() {
     for temp in m.iter() {
 
         match temp.data {
-            MatchData::Dictionary{ref l33t, ..} => assert_eq!(*l33t, true),
+            MatchData::Dictionary{ref l33t, ..} => {
+                assert!(l33t.is_some());
+            },
             _ => assert!(false),
         }
     }
