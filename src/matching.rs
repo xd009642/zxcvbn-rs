@@ -137,17 +137,8 @@ impl PartialEq for BaseMatch {
     }
 }
 
-
-
-/// Matches the password against every matcher returning the matches
-pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
-
-    master_dictionary_match(password)
-}
-
-
-fn master_dictionary_match(password: &str) -> Vec<BaseMatch> {
-
+pub fn matches_from_all_dicts(password: &str, 
+                              matcher: &Fn(&str, &[&'static str])->Vec<BaseMatch>) -> Vec<BaseMatch> {
     let default_dicts = vec![FEMALE_NAMES,
                              MALE_NAMES,
                              SURNAMES,
@@ -156,10 +147,24 @@ fn master_dictionary_match(password: &str) -> Vec<BaseMatch> {
                              US_TV_AND_FILM];
 
     default_dicts.iter()
-                 .map(|x| dictionary_match(password, x))
+                 .map(|x| matcher(password, x))
                  .flat_map(|x| x.into_iter())
                  .collect::<Vec<BaseMatch>>()
 }
+
+/// Matches the password against every matcher returning the matches
+pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
+    let default_dicts = vec![FEMALE_NAMES, MALE_NAMES, SURNAMES, PASSWORDS,
+                             ENGLISH_WIKIPEDIA, US_TV_AND_FILM];
+    let mut result:Vec<BaseMatch> = Vec::new();
+
+    result.append(&mut matches_from_all_dicts(password, &dictionary_match));
+    result.append(&mut matches_from_all_dicts(password, &reverse_dictionary_match));
+    result.append(&mut matches_from_all_dicts(password, &l33t_match));
+
+    result
+}
+
 
 fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
 
