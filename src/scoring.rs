@@ -305,7 +305,26 @@ fn repeat_guesses(m: &BaseMatch) -> u64 {
 }
 
 fn sequence_guesses(m: &BaseMatch) -> u64 {
-    1u64
+    assert_eq!(m.pattern, "Sequence");
+
+    let digits = Regex::new(r"\d").unwrap();
+    let extremes = Regex::new(r"[019azAZ]").unwrap();
+    
+    let mut base_guesses = if m.token.len() == 0 {
+        0u64
+    } else if extremes.is_match(&m.token[0..1]) {
+        4u64
+    } else if digits.is_match(&m.token[0..1]) {
+        10u64
+    } else {
+        26u64
+    };
+
+    match m.data {
+        MatchData::Sequence{ref ascending, ..} => base_guesses *= 2u64,
+        _ => {}
+    }
+    base_guesses * m.token.chars().count() as u64
 }
 
 fn regex_guesses(m: &BaseMatch) -> u64 {
