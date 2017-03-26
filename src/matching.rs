@@ -2,6 +2,7 @@ use std::cmp;
 use std::cmp::Ordering;
 use std::iter::Iterator;
 use std::collections::HashSet;
+use regex::Regex;
 
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
@@ -93,7 +94,7 @@ pub enum MatchData {
     },
     Sequence {
         name: String,
-        space: String,
+        space: u32,
         ascending: bool,
     },
     Regex {
@@ -161,7 +162,7 @@ pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
     result.append(&mut matches_from_all_dicts(password, &dictionary_match));
     result.append(&mut matches_from_all_dicts(password, &reverse_dictionary_match));
     result.append(&mut matches_from_all_dicts(password, &l33t_match));
-
+    result.append(&mut sequence_match(password));
     result
 }
 
@@ -382,4 +383,103 @@ fn l33t_match_test() {
     let m = l33t_match("!llus1on", &["illusion"]);
 
     assert_eq!(m.len(), 0);
+}
+
+fn sequence_update(token:&str, 
+                   i:usize, 
+                   j:usize, 
+                   delta:i16) -> Option<BaseMatch> {
+
+    let mut result:Option<BaseMatch> = None;
+    let max_delta = 5;
+    if (j as i32 - i as i32) > 1 || delta.abs() == 1 {
+        if 0 < delta.abs() && delta.abs() <= max_delta {
+            let lower = Regex::new(r"^[a-z]+$").unwrap();
+            let upper = Regex::new(r"^[A-Z]+$").unwrap();
+            let digits = Regex::new(r"^\d+$").unwrap();
+            
+            let(name, space) = if lower.is_match(token) {
+                ("lower".to_string(), 26u32)
+            } else if upper.is_match(token) {
+                ("upper".to_string(), 26u32)
+            } else if digits.is_match(token) {
+                ("digits".to_string(), 10u32)
+            } else {
+                ("unicode".to_string(), 26u32)
+            };
+            let data = MatchData::Sequence { 
+                name:name, 
+                space:space, 
+                ascending: delta>0
+            };
+            let res = BaseMatch{ 
+                pattern: String::from("Sequence"),
+                start: i,
+                end: j,
+                token: token.to_string(),
+                data: data
+            };
+            result = Some(res);
+        }
+    }
+    
+    result
+}
+
+pub fn sequence_match(password: &str) -> Vec<BaseMatch> {
+    let mut matches:Vec<BaseMatch> = Vec::new();
+    
+    let mut i = 0;
+    let mut last_delta:Option<i16> = None;
+    let length = password.chars().count();
+
+    for k in 1..length {
+        let mut chars = password[(k-1)..(k+1)].chars();
+        // Prevent overflow/underflow
+        let delta = - (chars.next().unwrap() as i16) + 
+            (chars.next().unwrap() as i16);
+        if last_delta.is_none() {
+            last_delta = Some(delta);
+        }
+        match last_delta {
+            Some(ld) if ld == delta => continue,
+            _ => {},
+        }
+        let j = k - 1;
+        match sequence_update(&password[i..j+1], i, j, last_delta.unwrap()) {
+            Some(r) => matches.push(r),
+            None => {},
+        }
+        i = j;
+        last_delta = Some(delta);
+    }
+    if let Some(ld) = last_delta {
+        match sequence_update(&password[i..length], i, length, ld) {
+            Some(r) => matches.push(r),
+            None => {},
+        }
+    }
+    
+    matches
+}
+
+
+#[test]
+fn sequence_test() {
+    let pass = "123456789";
+    let matches = sequence_match(pass);
+    assert_eq!(1, matches.len());
+    let m = matches.iter().nth(0).unwrap();
+    assert_eq!(m.pattern, "Sequence");
+    assert_eq!(m.start, 0);
+    assert_eq!(m.end, 9);
+    assert_eq!(m.token, "123456789");
+    match m.data {
+        MatchData::Sequence{ref name, ref space, ref ascending} => {
+            assert_eq!(*name, "digits");
+            assert_eq!(*space, 10);
+            assert_eq!(*ascending, true);
+        },
+        _ => assert!(false),
+    }
 }

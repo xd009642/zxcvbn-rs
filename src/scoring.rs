@@ -279,7 +279,7 @@ fn uppercase_variations(m: &BaseMatch) -> u64 {
     if token.to_lowercase() == token {
         return 1u64;
     }
-    let first_upper = Regex::new(r"^[A-Z][^A=Z]+$").unwrap();
+    let first_upper = Regex::new(r"^[A-Z][^A-Z]+$").unwrap();
     let last_upper = Regex::new(r"^[^A-Z]+[A-Z]$").unwrap();
     if token.to_uppercase() == token || first_upper.is_match(token) || last_upper.is_match(token) {
         return 2u64;
