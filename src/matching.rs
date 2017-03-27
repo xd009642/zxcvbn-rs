@@ -99,7 +99,6 @@ pub enum MatchData {
     },
     Regex {
         name: String,
-        regex_match: String,
     },
     Date {
         separator: char,
@@ -157,12 +156,21 @@ pub fn matches_from_all_dicts(password: &str,
 pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
     let default_dicts = vec![FEMALE_NAMES, MALE_NAMES, SURNAMES, PASSWORDS,
                              ENGLISH_WIKIPEDIA, US_TV_AND_FILM];
+    
+    let default_regex:HashMap<String, Regex> = {
+        let mut m = HashMap::new();
+        m.insert(String::from("recent year"), 
+                 Regex::new(r"19\d\d|200\d|201\d").unwrap());
+        m
+    };
+
     let mut result:Vec<BaseMatch> = Vec::new();
 
     result.append(&mut matches_from_all_dicts(password, &dictionary_match));
     result.append(&mut matches_from_all_dicts(password, &reverse_dictionary_match));
     result.append(&mut matches_from_all_dicts(password, &l33t_match));
     result.append(&mut sequence_match(password));
+    result.append(&mut regex_match(password, default_regex));
     result
 }
 
@@ -482,4 +490,25 @@ fn sequence_test() {
         },
         _ => assert!(false),
     }
+}
+
+
+pub fn regex_match(password: &str, 
+                   regexes: HashMap<String, Regex>) -> Vec<BaseMatch> {
+    let mut result: Vec<BaseMatch> = Vec::new();
+    
+    for (name, reg) in regexes.iter() {
+        if let Some(mat) = reg.find(password) {
+            let metadata = MatchData::Regex{ name:name.clone() };
+            let rmatch = BaseMatch {
+                pattern: String::from("Regex"),
+                start: mat.start(),
+                end: mat.end(),
+                token: password[mat.start()..mat.end()].to_string(),
+                data: metadata,
+            };
+
+        }
+    }
+    result
 }
