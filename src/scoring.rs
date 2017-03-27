@@ -1,15 +1,17 @@
 use result::PasswordResult;
 use matching::{BaseMatch, MatchData};
 use std::num;
+use std::io;
 use std::collections::HashMap;
 use std::cmp;
 use regex::Regex;
+use chrono::{Local, DateTime, Datelike};
 
 const BRUTEFORCE_CARDINALITY: u64 = 10;
 const MIN_GUESSES_BEFORE_GROWING_SEQUENCE: u64 = 10000;
 const MIN_SUBMATCH_GUESSES_SINGLE_CHAR: u64 = 10;
 const MIN_SUBMATCH_GUESSES_MULTI_CHAR: u64 = 50;
-
+const MIN_YEAR_SPACE: i32 = 20;
 
 struct MatchScores {
     m: BaseMatch,
@@ -328,7 +330,33 @@ fn sequence_guesses(m: &BaseMatch) -> u64 {
 }
 
 fn regex_guesses(m: &BaseMatch) -> u64 {
-    1u64
+    let class_bases:HashMap<String, u64> = {
+        let mut m = HashMap::new();
+        m.insert(String::from("alpha lower"), 26);
+        m.insert(String::from("alpha upper"), 26);
+        m.insert(String::from("alpha"), 52);
+        m.insert(String::from("alphanumeric"), 62);
+        m.insert(String::from("digits"), 10);
+        m.insert(String::from("symbols"), 33);
+        m
+    };
+    let reg_name = match m.data {
+        MatchData::Regex{ref name} => name,
+        _ => "",
+    };
+    
+    let mut guesses = 1u64;
+
+    if let Some(base) = class_bases.get(reg_name) {
+        guesses = base.pow(m.token.chars().count() as u32);  
+    } else if reg_name == "recent year" {
+        let reference_year = Local::now().year() as i32;
+        let year:i32 = m.token.parse().expect("Year not a number");
+        let year_space = (year - reference_year).abs();
+        guesses = cmp::max(year_space, MIN_YEAR_SPACE) as u64;
+    }
+
+    guesses
 }
 
 fn date_guesses(m: &BaseMatch) -> u64 {

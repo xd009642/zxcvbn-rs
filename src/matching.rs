@@ -507,7 +507,6 @@ pub fn regex_match(password: &str,
                 token: password[mat.start()..mat.end()].to_string(),
                 data: metadata,
             };
-
         }
     }
     result
