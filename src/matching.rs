@@ -511,3 +511,11 @@ pub fn regex_match(password: &str,
     }
     result
 }
+
+
+
+pub fn date_match(password: &str) -> Vec<BaseMatch> {
+    let mut result: Vec<BaseMatch> = Vec::new(); 
+    
+    result
+}

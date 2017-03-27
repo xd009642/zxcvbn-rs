@@ -323,7 +323,7 @@ fn sequence_guesses(m: &BaseMatch) -> u64 {
     };
 
     match m.data {
-        MatchData::Sequence{ref ascending, ..} => base_guesses *= 2u64,
+        MatchData::Sequence{ref ascending, ..} if !ascending => base_guesses *= 2u64,
         _ => {}
     }
     base_guesses * m.token.chars().count() as u64
