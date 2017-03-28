@@ -40,33 +40,6 @@ lazy_static! {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Months {
-    January,
-    February,
-    March,
-    April,
-    May,
-    June,
-    July,
-    August,
-    September,
-    October,
-    November,
-    December,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Days {
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
-    Sunday,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct L33tData {
     l33t_subs: HashMap<char, String>,
 
@@ -103,9 +76,7 @@ pub enum MatchData {
     },
     Date {
         separator: char,
-        year: u8,
-        month: Months,
-        day: Days,
+        date: NaiveDate, 
     },
 }
 
@@ -513,7 +484,7 @@ pub fn regex_match(password: &str,
     result
 }
 
-fn map_ints_to_dmy(a: i32, b: i32, c: i32) -> Option<NaiveDate> {
+fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
     None
 }
 
@@ -553,7 +524,7 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
                 if a.is_err() || b.is_err() || c.is_err() {
                     break;
                 }
-                if let Some(d) = map_ints_to_dmy(a.unwrap(), b.unwrap(),c.unwrap()) {
+                if let Some(d) = map_ints_to_dmy(&[a.unwrap(), b.unwrap(),c.unwrap()]) {
                     candidates.push(d);
                 }
             }
@@ -569,6 +540,18 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
                     min_distance = distance;
                 }
             }
+            let metadata = MatchData::Date{ 
+                separator:'\0', 
+                date:*candidates.iter().nth(best).unwrap() 
+            };
+            let mat = BaseMatch { 
+                pattern: String::from("Date"),
+                token: token.to_string(),
+                start: i,
+                end: j,
+                data: metadata,
+            };
+            result.push(mat);
         }
     }
     result
