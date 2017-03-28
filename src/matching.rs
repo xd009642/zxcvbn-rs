@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use std::iter::Iterator;
 use std::collections::HashSet;
 use regex::Regex;
+use chrono::{NaiveDate, Datelike, Local};
 
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
@@ -512,10 +513,63 @@ pub fn regex_match(password: &str,
     result
 }
 
-
+fn map_ints_to_dmy(a: i32, b: i32, c: i32) -> Option<NaiveDate> {
+    None
+}
 
 pub fn date_match(password: &str) -> Vec<BaseMatch> {
     let mut result: Vec<BaseMatch> = Vec::new(); 
-    
+
+    let date_splits:HashMap<usize, Vec<(usize, usize)>> = {
+        let mut m = HashMap::new();
+        m.insert(4, vec![(1, 2), (2, 3)]);
+        m.insert(5, vec![(1, 3), (2, 3)]);
+        m.insert(6, vec![(1, 2), (2, 4), (4, 5)]);
+        m.insert(7, vec![(1, 3), (2, 3), (4, 5), (4, 6)]);
+        m.insert(8, vec![(2, 4), (4, 6)]);
+        m
+    };
+
+    let maybe_date_no_sep = Regex::new(r"^\d{4,8}$").unwrap();
+    let maybe_date_with_sep = Regex::new(r"^(\d{1,4})([\s/\\_.-])(\d{1,2})\2(\d{1,4})$")
+        .unwrap(); 
+    let ref_year = Local::now().year() as i32;
+    let password_len = password.chars().count();
+    for i in 0..(password_len-3) {
+        for j in (i+3)..(i+8) {
+            if j >= password_len {
+                break;
+            }
+            let token = &password[i..j+1];
+
+            if !maybe_date_no_sep.is_match(&token) {
+                continue;
+            }
+            let mut candidates:Vec<NaiveDate> = Vec::new();
+            for &(k, l) in date_splits.get(&token.chars().count()).unwrap().iter() {
+                let a = token[0..k].parse();
+                let b = token[k..l].parse();
+                let c = token[l..j+1].parse();
+                if a.is_err() || b.is_err() || c.is_err() {
+                    break;
+                }
+                if let Some(d) = map_ints_to_dmy(a.unwrap(), b.unwrap(),c.unwrap()) {
+                    candidates.push(d);
+                }
+            }
+            if candidates.is_empty() {
+                continue;
+            }
+            let mut best:usize = 0;
+            let mut min_distance = i32::max_value();
+            for (index, cand) in candidates.iter().enumerate() {
+                let distance = (cand.year() - ref_year).abs();
+                if distance < min_distance {
+                    best = index;
+                    min_distance = distance;
+                }
+            }
+        }
+    }
     result
 }
