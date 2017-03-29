@@ -485,6 +485,50 @@ pub fn regex_match(password: &str,
 }
 
 fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
+    let mut result:Option<NaiveDate> = None;
+    const min_year:i32 = 1000;
+    const max_year:i32 = 2050;
+
+    
+    if vals[1] < 32 || vals[1] > 0 {
+        let mut in_range = true;
+        let mut over_12 = 0;
+        let mut over_31 = 0;
+        let mut under_1 = 0;
+        for i in vals.into_iter() {
+            match *i {
+                // Relies on fact ints have been parsed into valid magnitudes
+                99 ... min_year | max_year ... 9999 => {
+                    in_range = false;
+                },
+                _ if *i > 31 => over_31 += 1,
+                _ if *i > 12 => over_12 += 1,
+                _ if *i < 1 => under_1 += 1,
+                _ => {},
+            }
+        }
+        if in_range || over_31 < 2 || over_12 != 3 || under_1 < 2 {
+            // Do first stuff
+            let possible_splits = [(vals[2], (vals[0], vals[1])),
+                                   (vals[0], (vals[1], vals[2]))];
+
+            for &(year, dm) in possible_splits.into_iter() {
+                if min_year <= year && year <= max_year {
+                    if let Some(mut date) = map_ints_to_dm(&dm) {
+                        result = date.with_year(year);
+                    }
+                }
+            }
+            if result.is_none() {
+                //do second setuff
+            }
+        }
+    }
+    result
+}
+
+fn map_ints_to_dm(i:&(i32, i32)) -> Option<NaiveDate> {
+
     None
 }
 
