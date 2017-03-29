@@ -508,7 +508,6 @@ fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
             }
         }
         if in_range || over_31 < 2 || over_12 != 3 || under_1 < 2 {
-            // Do first stuff
             let possible_splits = [(vals[2], (vals[0], vals[1])),
                                    (vals[0], (vals[1], vals[2]))];
 
@@ -520,7 +519,11 @@ fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
                 }
             }
             if result.is_none() {
-                //do second setuff
+                for &(year, dm) in possible_splits.into_iter() {
+                    if let Some(mut date) = map_ints_to_dm(&dm) {
+                        result = date.with_year(two_to_four_digit_year(year));
+                    }
+                }
             }
         }
     }
@@ -528,8 +531,25 @@ fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
 }
 
 fn map_ints_to_dm(i:&(i32, i32)) -> Option<NaiveDate> {
+    let year = Local::now().year() as i32;
+    // TODO Change to (1..32).contains() etc. when stable
+    if 1 <= i.0 && i.0 <= 31 && 1 <= i.1 && i.1 <= 12 {
+        NaiveDate::from_ymd_opt(year, i.1 as u32, i.0 as u32)
+    } else if 1 <= i.1 && i.1 <= 31 && 1 <= i.0 && i.0 <= 12 {
+        NaiveDate::from_ymd_opt(year, i.0 as u32, i.1 as u32)
+    } else {
+        None
+    }
+}
 
-    None
+fn two_to_four_digit_year(year: i32) -> i32 {
+    if year > 99 {
+        year
+    } else if year > 50 {
+        year + 1900
+    } else {
+        year + 2000 
+    }
 }
 
 pub fn date_match(password: &str) -> Vec<BaseMatch> {
