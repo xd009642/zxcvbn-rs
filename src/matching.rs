@@ -566,7 +566,8 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
     };
 
     let maybe_date_no_sep = Regex::new(r"^\d{4,8}$").unwrap();
-    let maybe_date_with_sep = Regex::new(r"^(\d{1,4})([\s/\\_.-])(\d{1,2})\2(\d{1,4})$")
+    // Can't access previous captures in matches
+    let maybe_date_with_sep = Regex::new(r"^(\d{1,4})([\s/\\_.-])(\d{1,2})([\s/\\_.-])(\d{1,4})$")
         .unwrap(); 
     let ref_year = Local::now().year() as i32;
     let password_len = password.chars().count();
@@ -584,7 +585,7 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
             for &(k, l) in date_splits.get(&token.chars().count()).unwrap().iter() {
                 let a = token[0..k].parse();
                 let b = token[k..l].parse();
-                let c = token[l..j+1].parse();
+                let c = token[l..].parse();
                 if a.is_err() || b.is_err() || c.is_err() {
                     break;
                 }
@@ -604,7 +605,7 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
                     min_distance = distance;
                 }
             }
-            let metadata = MatchData::Date{ 
+            let metadata = MatchData::Date { 
                 separator:'\0', 
                 date:*candidates.iter().nth(best).unwrap() 
             };
@@ -618,5 +619,49 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
             result.push(mat);
         }
     }
+    for i in 0..password_len-6 {
+        for j in (i+5)..(i+10) {
+            if j >= password_len {
+                break;
+            }
+            let token = &password[i..j+1];
+            if let Some(cap) = maybe_date_with_sep.captures(token) 
+            {
+                // Thanks to regex we know these are strings hence the lack of checks
+                let dmy = &[
+                    cap.get(1).unwrap().as_str().parse().unwrap(), 
+                    cap.get(3).unwrap().as_str().parse().unwrap(), 
+                    cap.get(5).unwrap().as_str().parse().unwrap()
+                ];
+                if let Some(d) = map_ints_to_dmy(dmy) {
+                    let sep= cap.get(2)
+                                .unwrap()
+                                .as_str()
+                                .chars()
+                                .next()
+                                .unwrap();
+
+                    let metadata = MatchData::Date {
+                        separator: sep,
+                        date: d,
+                    };
+                    let mat = BaseMatch {
+                        pattern: String::from("Date"),
+                        token: token.to_string(),
+                        start: i,
+                        end: j,
+                        data: metadata,
+                    };
+                    result.push(mat);
+                }
+            }
+        } 
+    } 
     result
+}
+
+
+#[test]
+fn date_match_test() {
+
 }
