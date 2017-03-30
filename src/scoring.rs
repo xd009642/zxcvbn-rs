@@ -360,7 +360,17 @@ fn regex_guesses(m: &BaseMatch) -> u64 {
 }
 
 fn date_guesses(m: &BaseMatch) -> u64 {
-    1u64
+    let mut result:u64 = 0;
+    let reference_year = Local::now().year();
+    if let MatchData::Date { separator, date} = m.data {
+        result = 365u64 * cmp::max(date.year() - reference_year, 
+                                  MIN_YEAR_SPACE) as u64;
+        if separator != '\0' {
+            result *= 4;
+        }
+    }
+    
+    result
 }
 
 fn spatial_guesses(m: &BaseMatch) -> u64 {
