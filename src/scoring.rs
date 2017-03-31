@@ -23,6 +23,7 @@ struct MatchScores {
 #[derive(Default)]
 struct OptimalMatch {
     scores: HashMap<usize, Vec<MatchScores>>,
+    exclude_additive: bool,
 }
 
 impl OptimalMatch {
@@ -38,8 +39,10 @@ impl OptimalMatch {
                 }
             }
         }
-        let g = factorial(l as u64) * pi;
-
+        let mut g = factorial(l as u64) * pi;
+        if self.exclude_additive {
+            g += MIN_GUESSES_BEFORE_GROWING_SEQUENCE.pow((l - 1) as u32);
+        }
         if self.scores.contains_key(&k) {
             let scores = self.scores.get_mut(&k).unwrap();
             for scores in scores.iter() {
@@ -146,8 +149,9 @@ pub fn most_guessable_match_sequence(password: String,
                                      -> PasswordResult {
 
     let pref = password.as_str();
-    let mut optimal: OptimalMatch = {
-        Default::default()
+    let mut optimal = OptimalMatch {
+        exclude_additive: exclude_additive,
+        ..Default::default()
     };
     let chars = 0..password.len();
     let matches_by_end = chars.map(|x| matches.iter().filter(|y| y.end == x).collect::<Vec<_>>())
@@ -298,7 +302,38 @@ fn uppercase_variations(m: &BaseMatch) -> u64 {
 }
 
 fn l33t_variations(m: &BaseMatch) -> u64 {
-    1u64
+    let mut result = 1u64;
+    
+    let lower_token = m.token.to_lowercase();
+    if let MatchData::Dictionary { ref l33t, ref matched_word, .. } = m.data {
+        if let Some(ref data) = *l33t {
+            
+            for (k, v) in data.l33t_subs.iter() {
+                let subbed = lower_token.chars()
+                                        .filter(|x| x == k)
+                                        .count();
+                
+                let unsubbed = lower_token.chars()
+                                          .filter(|x| v.contains(*x))
+                                          .count();
+
+                if unsubbed == 0 || subbed == 0 {
+                    result *= 2;
+                } else {
+                    let mut possibilities:u64 = 0;
+                    for i in 1..cmp::min(subbed, unsubbed)+1 {
+                        possibilities += nCk((subbed+unsubbed) as u64, i as u64);
+                    }
+                    // Modifier for mutli-sub matcher I implemented that differs
+                    // from dropboxes. Might be doing possibilties for each
+                    // combo is more accurate.
+                    result *= v.chars().count() as u64 * possibilities;
+                }
+            }
+        }
+    }
+    
+    result
 }
 
 

@@ -4,6 +4,7 @@ use std::iter::Iterator;
 use std::collections::HashSet;
 use regex::Regex;
 use chrono::{NaiveDate, Datelike, Local};
+use scoring;
 
 include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
@@ -41,7 +42,9 @@ lazy_static! {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct L33tData {
-    l33t_subs: HashMap<char, String>,
+    /// Hashmap containing a key of l33t characters and a string of the characters
+    /// they replace
+    pub l33t_subs: HashMap<char, String>,
 
 }
 
@@ -349,9 +352,9 @@ pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch>
 fn l33t_match_test() {
     let m = l33t_match("pa$$w0rd", &["password", "pass"]);
     assert_eq!(m.len(), 2);
-
+    
     for temp in m.iter() {
-
+        println!("{:?}\n", temp);
         match temp.data {
             MatchData::Dictionary{ref l33t, ..} => {
                 assert!(l33t.is_some());
@@ -361,7 +364,6 @@ fn l33t_match_test() {
     }
 
     let m = l33t_match("!llus1on", &["illusion"]);
-
     assert_eq!(m.len(), 0);
 }
 
