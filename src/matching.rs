@@ -667,3 +667,16 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
 fn date_match_test() {
 
 }
+
+
+pub fn repeat_match(password: &str) -> Vec<BaseMatch> {
+    let mut result:Vec<BaseMatch> = Vec::new();
+    let count = password.chars().count();
+    
+    let mut last_index = 0;
+    while last_index < count {
+        
+        
+    }
+    result
+}

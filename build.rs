@@ -17,10 +17,6 @@ use std::error::Error;
 
 use slog::DrainExt;
 
-enum KeyAlignment {
-    Slanted,
-    Aligned,
-}
 
 struct WordData {
     name: String,
@@ -88,7 +84,7 @@ fn filter_data(dicts: &mut Vec<WordData>) {
 /// Use trailing spaces at the start of lines to represent non character keys
 /// such as caps tab and shift.
 fn generate_adjacencies(keyboard: String, 
-                        align: KeyAlignment) -> HashMap<String, String> {
+                        aligned: bool) -> HashMap<String, String> {
     let mut adj_list : HashMap<String, String> = HashMap::new();
     let rows = keyboard.lines()
         .map(|x| x.split(' ').collect::<Vec<&str>>())
@@ -107,6 +103,12 @@ fn generate_adjacencies(keyboard: String,
                     if let Some(pchar) = prev.get(j+1) {
                         let ap = format!("{} ", pchar);
                         value.push_str(ap.as_str());
+                    }
+                    if aligned && j>0 {
+                        if let Some(pchar) = prev.get(j-1) {
+                            let ap = format!("{} ", pchar);
+                            value.push_str(ap.as_str());
+                        }
                     }
                 }
                 // Values for this row
@@ -130,6 +132,12 @@ fn generate_adjacencies(keyboard: String,
                                 let ap = format!("{} ", nchar);
                                 value.push_str(ap.as_str());
                             }
+                            if j > 0 && aligned {
+                                if let Some(nchar) = next.get(j-1) {
+                                    let ap = format!("{} ", nchar);
+                                    value.push_str(ap.as_str());
+                                }
+                            }
                         }
                     } 
                 }
@@ -143,8 +151,9 @@ fn generate_adjacencies(keyboard: String,
 fn export_adjacencies(target: &mut fs::File, name: String, 
                       data: HashMap<String, String>) {
     let mut source:String = String::new();
-    let header = format!("\tstatic ref {}:HashMap<&'static str, &'static str> = {{\n\
-    \t\tlet mut m = HashMap::new();\n", name);
+    let header = format!("\t#[allow(dead_code)]\n\
+        \tstatic ref {}:HashMap<&'static str, &'static str> = {{\n\
+        \t\tlet mut m = HashMap::new();\n", name);
 
     source.push_str(header.as_str());
 
@@ -265,6 +274,18 @@ fn main() {
                   aA oO eE uU iI dD hH tT nN sS -_\n \
                   ;: qQ jJ kK xX bB mM vV zZ".to_string();
 
+    let keypad = " / * -\n\
+                  7 8 9 +\n\
+                  4 5 6\n\
+                  1 2 3\n\
+                   0 .".to_string();
+
+    let mac_keypad = " = / *\n\
+                      7 8 9 -\n\
+                      4 5 6 +\n\
+                      1 2 3\n\
+                       0 .".to_string();
+
     println!("Generating keyboard adjacency lookups");
     let dest_path = Path::new(&out_dir).join("adjacency_data.rs");
     let mut f = fs::File::create(&dest_path).unwrap();
@@ -275,12 +296,20 @@ fn main() {
     lazy_static! {\n").unwrap();
 
     if let Ok(mut clone_file) = f.try_clone() {
-        let data = generate_adjacencies(qwerty_uk, KeyAlignment::Slanted);
+        let data = generate_adjacencies(qwerty_uk, false);
         export_adjacencies(&mut clone_file, "QWERTY".to_string(), data);
     }
     if let Ok(mut clone_file) = f.try_clone() {
-        let data = generate_adjacencies(dvorak, KeyAlignment::Slanted);
+        let data = generate_adjacencies(dvorak, false);
         export_adjacencies(&mut clone_file, "DVORAK".to_string(), data);
+    }
+    if let Ok(mut clone_file) = f.try_clone() {
+        let data = generate_adjacencies(keypad, true);
+        export_adjacencies(&mut clone_file, "KEYPAD".to_string(), data);
+    }
+    if let Ok(mut clone_file) = f.try_clone() {
+        let data = generate_adjacencies(mac_keypad, true);
+        export_adjacencies(&mut clone_file, "MAC_KEYPAD".to_string(), data);
     }
 
     f.write_all(b"}\n").unwrap();
