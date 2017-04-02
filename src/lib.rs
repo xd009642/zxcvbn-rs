@@ -2,9 +2,8 @@
 extern crate lazy_static;
 extern crate regex;
 extern crate chrono;
+extern crate fancy_regex;
 
-include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
-include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
 pub mod matching;
 pub mod result;

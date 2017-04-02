@@ -20,7 +20,6 @@ use slog::DrainExt;
 
 struct WordData {
     name: String,
-    count: Option<usize>,
     data: RefCell<Vec<String>>,
 }
 
@@ -93,9 +92,20 @@ fn generate_adjacencies(keyboard: String,
         for (j, key) in row.iter().enumerate() {
             if !key.is_empty() {
                 let mut value : String = String::new();
+                // Values for this row
+                if j > 0 {
+                    let ap = format!("{} ", row.get(j-1).unwrap());
+                    value.push_str(ap.as_str());
+                }
                 // Values for row above
                 if i>0 {
                     let prev = rows.get(i-1).unwrap();
+                    if aligned && j>0 {
+                        if let Some(pchar) = prev.get(j-1) {
+                            let ap = format!("{} ", pchar);
+                            value.push_str(ap.as_str());
+                        }
+                    }
                     if let Some(pchar) = prev.get(j) {
                         let ap = format!("{} ", pchar);
                         value.push_str(ap.as_str());
@@ -104,17 +114,6 @@ fn generate_adjacencies(keyboard: String,
                         let ap = format!("{} ", pchar);
                         value.push_str(ap.as_str());
                     }
-                    if aligned && j>0 {
-                        if let Some(pchar) = prev.get(j-1) {
-                            let ap = format!("{} ", pchar);
-                            value.push_str(ap.as_str());
-                        }
-                    }
-                }
-                // Values for this row
-                if j > 0 {
-                    let ap = format!("{} ", row.get(j-1).unwrap());
-                    value.push_str(ap.as_str());
                 }
                 if let Some(next) = row.get(j+1) {
                     let ap = format!("{} ", next);
@@ -123,15 +122,13 @@ fn generate_adjacencies(keyboard: String,
                 // Values for next row
                 if let Some(next) = rows.get(i+1) {
                     if let Some(nchar) = next.get(j) {
-                        if !nchar.is_empty()
-                        {
-                            let ap = format!("{} ", nchar);
-                            value.push_str(ap.as_str());
-    
+                        if !nchar.is_empty(){
                             if let Some(nchar) = next.get(j+1) {
                                 let ap = format!("{} ", nchar);
                                 value.push_str(ap.as_str());
                             }
+                            let ap = format!("{} ", nchar);
+                            value.push_str(ap.as_str());
                             if j > 0 && aligned {
                                 if let Some(nchar) = next.get(j-1) {
                                     let ap = format!("{} ", nchar);
@@ -217,12 +214,9 @@ fn main() {
                     Some(fname) => fname,
                     None => continue,
                 };
-                let count = match limits.get(name) {
-                    Some(t) => Some(*t),
-                    None => None,
-                };
-                let temp = WordData{ name: name.to_string(), count: count,
-                                          data: RefCell::new(parse_data(s)),
+                let temp = WordData{ 
+                    name: name.to_string(), 
+                    data: RefCell::new(parse_data(s)),
                 };
                 exported_data.push(temp);
             },

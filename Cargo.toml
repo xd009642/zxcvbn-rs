@@ -8,6 +8,7 @@ build = "build.rs"
 lazy_static = "0.2.*"
 chrono = "0.3"
 regex = "0.2"
+fancy-regex = "0.1.0"
 
 [build-dependencies]
 slog = "1.2"

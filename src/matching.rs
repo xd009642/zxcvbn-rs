@@ -1,7 +1,6 @@
-use std::cmp;
 use std::cmp::Ordering;
 use std::iter::Iterator;
-use std::collections::HashSet;
+use fancy_regex;
 use regex::Regex;
 use chrono::{NaiveDate, Datelike, Local};
 use scoring;
@@ -676,7 +675,75 @@ pub fn repeat_match(password: &str) -> Vec<BaseMatch> {
     let mut last_index = 0;
     while last_index < count {
         
+        last_index += 1;     
+    }
+    result
+}
+
+
+pub fn spatial_match(password: &str) -> Vec<BaseMatch> {
+    let mut result:Vec<BaseMatch> = Vec::new();
+
+    let graphs = vec![
+        &*QWERTY,
+        &*DVORAK,
+        &*KEYPAD,
+        &*MAC_KEYPAD
+    ];
+    let names = vec![
+        "qwerty",
+        "dvorak",
+        "Keypad",
+        "Mac keypad"
+    ];
+
+    for (name, graph) in names.iter().zip(graphs.iter()) {
+        result.append(&mut spatial_helper(password, name, *graph));
+    }
+
+    result.sort();
+    result
+}
+
+
+fn spatial_helper(password: &str, 
+                  graph_name: &str, 
+                  graph: &HashMap<&str, &str>) -> Vec<BaseMatch> {
+    let mut result:Vec<BaseMatch> = Vec::new();
+    
+    let password_len = password.chars().count();
+    let mut i = 0;
+
+    while i < password_len {
+        let mut j = i + 1;
         
+        let mut found = false;
+        let mut shift_count = 0;
+        loop {
+            
+            if found {
+            
+            } else {
+                if j - i > 2 {
+                    let data = MatchData::Spatial {
+                        graph: graph_name.to_string(),
+                        turns: 0,
+                        shifted_count: shift_count,
+                    };
+
+                    let mat = BaseMatch {
+                        pattern: String::from("Spatial"),
+                        start: i,
+                        end: j - 1,
+                        token: password[i..j].to_string(),
+                        data: data,
+                    };
+                    result.push(mat);
+                }
+                i = j;
+                break;
+            }
+        }
     }
     result
 }
