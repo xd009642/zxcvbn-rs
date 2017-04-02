@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::iter::Iterator;
-use fancy_regex;
+use fancy_regex::Regex as FancyRegex;
 use regex::Regex;
 use chrono::{NaiveDate, Datelike, Local};
 use scoring;
@@ -65,7 +65,7 @@ pub enum MatchData {
     },
     Repeat {
         base_token: String,
-        base_guesses: usize,
+        base_guesses: u64,
         repeat_count: usize,
     },
     Sequence {
@@ -128,8 +128,6 @@ pub fn matches_from_all_dicts(password: &str,
 
 /// Matches the password against every matcher returning the matches
 pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
-    let default_dicts = vec![FEMALE_NAMES, MALE_NAMES, SURNAMES, PASSWORDS,
-                             ENGLISH_WIKIPEDIA, US_TV_AND_FILM];
     
     let default_regex:HashMap<String, Regex> = {
         let mut m = HashMap::new();
@@ -298,17 +296,16 @@ pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch>
 
     } else if remaining_l33ts > 0 {
         let subtable = L33T_TABLE.iter()
-                                 .filter(|&(k, v)| partial_sub.contains(*k))
+                                 .filter(|&(k, _)| partial_sub.contains(*k))
                                  .map(|(k, v)| (*k, *v))
                                  .collect::<Vec<(char, &str)>>();
 
         let sizes = subtable.iter()
-                            .map(|&(k, v)| (*v).chars().count())
+                            .map(|&(_, v)| (*v).chars().count())
                             .collect::<Vec<usize>>();
 
         let mut current = 0;
         let mut indexes: Vec<usize> = vec![0; sizes.len()];
-        let mut done = false;
         while current != sizes.len() {
 
             let sub = subtable.iter()
@@ -480,6 +477,7 @@ pub fn regex_match(password: &str,
                 token: password[mat.start()..mat.end()].to_string(),
                 data: metadata,
             };
+            result.push(rmatch);
         }
     }
     result
@@ -487,8 +485,8 @@ pub fn regex_match(password: &str,
 
 fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
     let mut result:Option<NaiveDate> = None;
-    const min_year:i32 = 1000;
-    const max_year:i32 = 2050;
+    const MIN_YEAR:i32 = 1000;
+    const MAX_YEAR:i32 = 2050;
 
     
     if vals[1] < 32 || vals[1] > 0 {
@@ -499,7 +497,7 @@ fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
         for i in vals.into_iter() {
             match *i {
                 // Relies on fact ints have been parsed into valid magnitudes
-                99 ... min_year | max_year ... 9999 => {
+                99 ... MIN_YEAR | MAX_YEAR ... 9999 => {
                     in_range = false;
                 },
                 _ if *i > 31 => over_31 += 1,
@@ -513,15 +511,15 @@ fn map_ints_to_dmy(vals: &[i32; 3]) -> Option<NaiveDate> {
                                    (vals[0], (vals[1], vals[2]))];
 
             for &(year, dm) in possible_splits.into_iter() {
-                if min_year <= year && year <= max_year {
-                    if let Some(mut date) = map_ints_to_dm(&dm) {
+                if MIN_YEAR <= year && year <= MAX_YEAR {
+                    if let Some(date) = map_ints_to_dm(&dm) {
                         result = date.with_year(year);
                     }
                 }
             }
             if result.is_none() {
                 for &(year, dm) in possible_splits.into_iter() {
-                    if let Some(mut date) = map_ints_to_dm(&dm) {
+                    if let Some(date) = map_ints_to_dm(&dm) {
                         result = date.with_year(two_to_four_digit_year(year));
                     }
                 }
@@ -672,12 +670,78 @@ pub fn repeat_match(password: &str) -> Vec<BaseMatch> {
     let mut result:Vec<BaseMatch> = Vec::new();
     let count = password.chars().count();
     
+    let greedy = FancyRegex::new(r"(.+)\1+").unwrap();
+    let lazy = FancyRegex::new(r"(.+?)\1+").unwrap();
+    let lazy_anchored = FancyRegex::new(r"^(.+?)\1+$").unwrap();
+
     let mut last_index = 0;
     while last_index < count {
-        
-        last_index += 1;     
+        let gmatch = greedy.captures(&password[last_index..]).unwrap();
+        if let Some(gcap) = gmatch {
+            let (gstart, gend) = gcap.pos(0).unwrap();
+            // if greedy matches lazy will
+            let lcap = lazy.captures(&password[last_index..]).unwrap().unwrap();
+            let (lstart, lend) = lcap.pos(0).unwrap();
+
+            let mut base: String;
+            let mut start = gstart + last_index;
+            let mut end = gend + last_index;
+
+            if gend - gstart > lend - lstart {
+                let lamatch = lazy_anchored.captures(&password[gstart..gend]).unwrap().unwrap(); 
+                base = lamatch.at(1).unwrap().to_string();
+            } else {
+                start = lstart + last_index;
+                end = lend + last_index;
+                base = lcap.at(1).unwrap().to_string();
+            }
+            
+            let base_analysis = scoring::most_guessable_match_sequence(base.clone(), 
+                                                                       omnimatch(base.as_ref()),
+                                                                       false);
+            let repeat_count = (end - start) / base.chars().count();
+            let metadata = MatchData::Repeat {
+                base_token: base,
+                base_guesses: base_analysis.guesses,
+                repeat_count: repeat_count
+            };
+            
+            let data = BaseMatch {
+                pattern: String::from("Repeat"),
+                start: start,
+                end: end,
+                token: gcap.at(0).unwrap().to_string(),
+                data: metadata
+            };
+            result.push(data);
+            last_index += 1;     
+        } else {
+            break;
+        }
     }
     result
+}
+
+
+#[test]
+fn repeat_match_test() {
+    let test = "aabaabaabaab";
+    let result = repeat_match(test);
+    assert_eq!(result.len(), 10);
+    
+    let first = result.iter().nth(0).unwrap();
+    assert_eq!(first.pattern, "Repeat");
+    assert_eq!(first.start, 0);
+    assert_eq!(first.end, test.chars().count());
+    assert_eq!(first.token, test);
+    match first.data {
+        MatchData::Repeat{ref base_token, ref repeat_count, ..} => {
+            assert_eq!(*repeat_count, 4);
+            assert_eq!(*base_token, "aab");
+        },
+        _=> assert!(false),
+    };
+    //let result = repeat_match("abcdefghijklmnopqrstuvwxyz");
 }
 
 
@@ -710,7 +774,7 @@ fn spatial_helper(password: &str,
                   graph_name: &str, 
                   graph: &HashMap<&str, &str>) -> Vec<BaseMatch> {
     let mut result:Vec<BaseMatch> = Vec::new();
-    
+    let shifted_char = FancyRegex::new("[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?]").unwrap();
     let password_len = password.chars().count();
     let mut i = 0;
 
@@ -718,9 +782,15 @@ fn spatial_helper(password: &str,
         let mut j = i + 1;
         
         let mut found = false;
-        let mut shift_count = 0;
+        let mut shift_count = if ["qwerty", "dvorak"].contains(&graph_name) && 
+                                 shifted_char.is_match(&password[i..(i+1)]).unwrap() {
+            1
+        } else {
+            0
+        };
         loop {
-            
+            let prev_char = password.chars().nth(j-1);
+
             if found {
             
             } else {
