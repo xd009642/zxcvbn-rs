@@ -1,11 +1,12 @@
+use std::collections::HashMap;
 use std::cmp::Ordering;
 use std::iter::Iterator;
 use fancy_regex::Regex as FancyRegex;
 use regex::Regex;
 use chrono::{NaiveDate, Datelike, Local};
 use scoring;
+use keygraph_rs::*;
 
-include!(concat!(env!("OUT_DIR"), "/adjacency_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/frequency_data.rs"));
 
 lazy_static! {
@@ -749,10 +750,10 @@ pub fn spatial_match(password: &str) -> Vec<BaseMatch> {
     let mut result:Vec<BaseMatch> = Vec::new();
 
     let graphs = vec![
-        &*QWERTY,
+        &*QWERTY_US,
         &*DVORAK,
-        &*KEYPAD,
-        &*MAC_KEYPAD
+        &*STANDARD_NUMPAD,
+        &*MAC_NUMPAD
     ];
     let names = vec![
         "qwerty",
@@ -762,7 +763,7 @@ pub fn spatial_match(password: &str) -> Vec<BaseMatch> {
     ];
 
     for (name, graph) in names.iter().zip(graphs.iter()) {
-        result.append(&mut spatial_helper(password, name, *graph));
+        result.append(&mut spatial_helper(password, name, graph));
     }
 
     result.sort();
@@ -772,32 +773,51 @@ pub fn spatial_match(password: &str) -> Vec<BaseMatch> {
 
 fn spatial_helper(password: &str, 
                   graph_name: &str, 
-                  graph: &HashMap<&str, &str>) -> Vec<BaseMatch> {
+                  graph: &Keyboard) -> Vec<BaseMatch> {
     let mut result:Vec<BaseMatch> = Vec::new();
-    let shifted_char = FancyRegex::new("[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?]").unwrap();
     let password_len = password.chars().count();
     let mut i = 0;
-
     while i < password_len {
         let mut j = i + 1;
+        // minimum number of turns
+        let mut turns = 0;
+        let mut previous_key: Option<Key> = None;
+        let mut previous_direction: Option<&Edge> = None;
+        let current_char = password.chars().nth(i).unwrap();
+        let current_key = graph.find_key(current_char);
+        if current_key.is_none() {
+            i = i +1;
+            continue;
+        }
+        let current_key = current_key.unwrap();
+        let mut previous_key = current_key;
+        let mut shift_count = (current_key.shifted == current_char) as usize;
         
-        let mut found = false;
-        let mut shift_count = if ["qwerty", "dvorak"].contains(&graph_name) && 
-                                 shifted_char.is_match(&password[i..(i+1)]).unwrap() {
-            1
-        } else {
-            0
-        };
         loop {
-            let prev_char = password.chars().nth(j-1);
-
+            let mut found = false;
+            if j < password_len {
+                let current_char = password.chars().nth(j).unwrap();
+                let current_key = graph.find_key(current_char);
+                if current_key.is_some() {
+                    let current_key = current_key.unwrap();
+                    if let Some(dir) = graph.edge_weight(previous_key, current_key) {
+                        found = true;    
+                        shift_count += (current_key.shifted == current_char) as usize;
+                        if Some(dir) != previous_direction {
+                            turns += 1;
+                            previous_direction = Some(dir);
+                        }
+                    }
+                    previous_key = current_key;
+                }
+            }
             if found {
-            
+                j += 1;
             } else {
                 if j - i > 2 {
                     let data = MatchData::Spatial {
                         graph: graph_name.to_string(),
-                        turns: 0,
+                        turns: turns,
                         shifted_count: shift_count,
                     };
 
@@ -816,4 +836,21 @@ fn spatial_helper(password: &str,
         }
     }
     result
+}
+
+
+#[test]
+fn test_spatial_match() {
+    let password = "mNbVcvBnM,.?";
+    let matches = spatial_match(password);
+    assert_eq!(matches.len(), 1);
+    let mat = matches.iter().nth(0).unwrap();
+    match mat.data {
+        MatchData::Spatial{ref graph, ref turns, ref shifted_count} => {
+            assert_eq!(*graph, "qwerty");
+            assert_eq!(*turns, 2);
+            assert_eq!(*shifted_count, 5);
+        },
+        _ => assert!(false),
+    }
 }
