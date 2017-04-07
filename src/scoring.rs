@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::cmp;
 use regex::Regex;
 use chrono::{Local, DateTime, Datelike};
+use keygraph_rs::*;
 
 const BRUTEFORCE_CARDINALITY: u64 = 10;
 const MIN_GUESSES_BEFORE_GROWING_SEQUENCE: u64 = 10000;
@@ -408,6 +409,42 @@ fn date_guesses(m: &BaseMatch) -> u64 {
     result
 }
 
-fn spatial_guesses(m: &BaseMatch) -> u64 {
-    1u64
+
+fn calculate_average_key_degree(keyboard: &Keyboard) -> f64 {
+    (keyboard.edge_count() as f64) / (keyboard.node_count() as f64)
 }
+
+fn spatial_guesses(m: &BaseMatch) -> u64 {
+    let mut guesses:u64 = 0;
+    let token_length = m.token.chars().count();
+    
+    if let MatchData::Spatial{ref graph, ref turns, ref shifted_count} = m.data {
+        let (numkeys, average_degree) = if ["qwerty", "dvorak"].contains(&graph.as_ref()) {
+            (QWERTY_US.node_count(), 
+             calculate_average_key_degree(&*QWERTY_US).round() as u64)
+        } else {
+            (STANDARD_NUMPAD.node_count(), 
+             calculate_average_key_degree(&*STANDARD_NUMPAD).round() as u64)
+        };
+        for i in 2..token_length {
+            let possible_turns = cmp::min(*turns, (i-1)) + 1;
+            for j in 1..possible_turns {
+                guesses += nCk((i - j) as u64, (j - 1) as u64) * 
+                    numkeys as u64 * average_degree.pow(j as u32);
+            }
+        }
+        let shifted_count = *shifted_count;
+        let unshifted_count = token_length - shifted_count;
+        if unshifted_count == 0 || shifted_count == 0 {
+            guesses *= 2;
+        } else {
+            let temp = cmp::min(unshifted_count, shifted_count)+1;
+            let shifted_variations = (1..temp)
+                .fold(0, |acc, i| acc + 
+                      nCk((shifted_count+unshifted_count) as u64, i as u64));
+            guesses *= shifted_variations;                               
+        }
+    }
+    guesses
+}
+
