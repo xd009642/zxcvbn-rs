@@ -4,6 +4,7 @@ extern crate slog_stream;
 extern crate slog_stdlog;
 #[macro_use]
 extern crate log;
+extern crate num_traits;
 
 use std::env;
 use std::fs;
@@ -12,6 +13,7 @@ use std::io::prelude::*;
 use std::io::Write;
 use std::path::Path;
 use std::collections::{HashMap, HashSet};
+use num_traits::checked_pow;
 use std::cell::RefCell;
 use std::error::Error;
 
@@ -48,7 +50,8 @@ fn parse_data(data: String) -> Vec<String> {
 }
 
 fn is_rare_and_short(word: &String, rank: u32) -> bool {
-    word.len()<8 && rank >=10u32.pow(word.len() as u32) 
+    let len = word.chars().count();
+    rank >= checked_pow(10u32, len).unwrap_or(u32::max_value())
 }
 
 fn filter_data(dicts: &mut Vec<WordData>) {

@@ -12,6 +12,7 @@ const MIN_SUBMATCH_GUESSES_SINGLE_CHAR: u64 = 10;
 const MIN_SUBMATCH_GUESSES_MULTI_CHAR: u64 = 50;
 const MIN_YEAR_SPACE: i32 = 20;
 
+#[derive(Debug)]
 struct MatchScores {
     m: BaseMatch,
     pi: u64,
@@ -19,7 +20,7 @@ struct MatchScores {
     length: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct OptimalMatch {
     scores: HashMap<usize, Vec<MatchScores>>,
     exclude_additive: bool,
@@ -137,7 +138,7 @@ fn bruteforce_match(password: &String, start: usize, end: usize) -> BaseMatch {
     BaseMatch {
         pattern: String::from("Bruteforce"),
         start: start,
-        end: end + 1,
+        end: end,
         token: password[start..end + 1].to_string(),
         data: MatchData::Plain,
     }
@@ -196,8 +197,7 @@ pub fn most_guessable_match_sequence(password: String,
         }
     }
     let optimal_seq = optimal.unwind(password.len());
-    let optimal_length = optimal_seq.iter().count();
-    // unwind optimal sequence
+    let optimal_length = optimal_seq.iter().count() - 1;
 
     // format result based on length
     let guesses = if password.len() == 0 {
@@ -209,7 +209,7 @@ pub fn most_guessable_match_sequence(password: String,
             if ms.is_some() {
                 gs = ms.unwrap().g;
             }
-        }
+        } 
         gs
     };
     let g_log10 = (guesses as f64).log10();
