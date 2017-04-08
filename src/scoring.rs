@@ -218,6 +218,7 @@ pub fn most_guessable_match_sequence(password: String,
         password: password.clone(),
         guesses: guesses,
         guesses_log10: g_log10,
+        sequence: optimal_seq,
         ..Default::default()
     }
 }

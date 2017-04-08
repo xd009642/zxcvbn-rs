@@ -6,12 +6,12 @@ use std::env;
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
     println!("Password is {}", password);
     let matches = matching::omnimatch(password.as_ref());
-    let best_sequence = scoring::most_guessable_match_sequence(password, matches, false);
+    let mut best_sequence = scoring::most_guessable_match_sequence(password, 
+                                                                   matches, 
+                                                                   false);
     let attack_times = result::CrackTimes::new(best_sequence.guesses);
-    let feedback = result::get_feedback(best_sequence.guesses);
-    println!("{:?}", feedback);
-    println!("Guesses are: {}", best_sequence.guesses);
-    println!("Attack times in seconds\n{:?}", attack_times);
+    best_sequence.get_feedback();
+    println!("{:?}", best_sequence);
 }
 
 fn main() {
