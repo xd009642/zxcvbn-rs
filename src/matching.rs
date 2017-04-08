@@ -144,6 +144,11 @@ pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
     result.append(&mut matches_from_all_dicts(password, &l33t_match));
     result.append(&mut sequence_match(password));
     result.append(&mut regex_match(password, default_regex));
+    result.append(&mut date_match(password));
+    result.append(&mut repeat_match(password));
+    result.append(&mut spatial_match(password));
+    
+    result.sort();
     result
 }
 
@@ -554,7 +559,10 @@ fn two_to_four_digit_year(year: i32) -> i32 {
 
 pub fn date_match(password: &str) -> Vec<BaseMatch> {
     let mut result: Vec<BaseMatch> = Vec::new(); 
-
+    let password_len = password.chars().count();
+    if password_len < 4 {
+        return result;
+    }
     let date_splits:HashMap<usize, Vec<(usize, usize)>> = {
         let mut m = HashMap::new();
         m.insert(4, vec![(1, 2), (2, 3)]);
@@ -570,7 +578,6 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
     let maybe_date_with_sep = Regex::new(r"^(\d{1,4})([\s/\\_.-])(\d{1,2})([\s/\\_.-])(\d{1,4})$")
         .unwrap(); 
     let ref_year = Local::now().year() as i32;
-    let password_len = password.chars().count();
     for i in 0..(password_len-3) {
         for j in (i+3)..(i+8) {
             if j >= password_len {
