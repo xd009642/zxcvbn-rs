@@ -1,11 +1,9 @@
 use result::PasswordResult;
 use matching::{BaseMatch, MatchData};
-use std::num;
-use std::io;
 use std::collections::HashMap;
 use std::cmp;
 use regex::Regex;
-use chrono::{Local, DateTime, Datelike};
+use chrono::{Local, Datelike};
 use keygraph_rs::*;
 
 const BRUTEFORCE_CARDINALITY: u64 = 10;
@@ -111,6 +109,7 @@ fn factorial_test() {
     assert!(factorial(10) == 3628800);
 }
 
+#[allow(non_snake_case)]
 fn nCk(mut n: u64, k: u64) -> u64 {
     let result = if k > n {
         0
@@ -306,7 +305,7 @@ fn l33t_variations(m: &BaseMatch) -> u64 {
     let mut result = 1u64;
     
     let lower_token = m.token.to_lowercase();
-    if let MatchData::Dictionary { ref l33t, ref matched_word, .. } = m.data {
+    if let MatchData::Dictionary { ref l33t, .. } = m.data {
         if let Some(ref data) = *l33t {
             
             for (k, v) in data.l33t_subs.iter() {
@@ -339,7 +338,11 @@ fn l33t_variations(m: &BaseMatch) -> u64 {
 
 
 fn repeat_guesses(m: &BaseMatch) -> u64 {
-    1u64
+    if let MatchData::Repeat{ ref base_guesses, ref repeat_count, ..} = m.data {
+        *base_guesses * *repeat_count as u64
+    } else {
+        1u64
+    }
 }
 
 fn sequence_guesses(m: &BaseMatch) -> u64 {
@@ -398,6 +401,7 @@ fn regex_guesses(m: &BaseMatch) -> u64 {
 fn date_guesses(m: &BaseMatch) -> u64 {
     let mut result:u64 = 0;
     let reference_year = Local::now().year();
+    
     if let MatchData::Date { separator, date} = m.data {
         result = 365u64 * cmp::max(date.year() - reference_year, 
                                   MIN_YEAR_SPACE) as u64;
@@ -405,7 +409,6 @@ fn date_guesses(m: &BaseMatch) -> u64 {
             result *= 4;
         }
     }
-    
     result
 }
 

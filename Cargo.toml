@@ -9,7 +9,7 @@ lazy_static = "0.2.*"
 chrono = "0.3"
 regex = "0.2"
 fancy-regex = "0.1.0"
-keygraph-rs = "0.2.4"
+keygraph-rs = "0.2.5"
 [build-dependencies]
 slog = "1.2"
 slog-stream = "1.2.0"

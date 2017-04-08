@@ -684,7 +684,7 @@ pub fn repeat_match(password: &str) -> Vec<BaseMatch> {
             let lcap = lazy.captures(&password[last_index..]).unwrap().unwrap();
             let (lstart, lend) = lcap.pos(0).unwrap();
 
-            let mut base: String;
+            let base: String;
             let mut start = gstart + last_index;
             let mut end = gend + last_index;
 
@@ -779,9 +779,7 @@ fn spatial_helper(password: &str,
     let mut i = 0;
     while i < password_len {
         let mut j = i + 1;
-        // minimum number of turns
         let mut turns = 0;
-        let mut previous_key: Option<Key> = None;
         let mut previous_direction: Option<&Edge> = None;
         let current_char = password.chars().nth(i).unwrap();
         let current_key = graph.find_key(current_char);
@@ -791,7 +789,7 @@ fn spatial_helper(password: &str,
         }
         let current_key = current_key.unwrap();
         let mut previous_key = current_key;
-        let mut shift_count = (current_key.shifted == current_char) as usize;
+        let mut shift_count = current_key.is_shifted(current_char) as usize;
         
         loop {
             let mut found = false;
@@ -802,7 +800,7 @@ fn spatial_helper(password: &str,
                     let current_key = current_key.unwrap();
                     if let Some(dir) = graph.edge_weight(previous_key, current_key) {
                         found = true;    
-                        shift_count += (current_key.shifted == current_char) as usize;
+                        shift_count += current_key.is_shifted(current_char) as usize;
                         if Some(dir) != previous_direction {
                             turns += 1;
                             previous_direction = Some(dir);
