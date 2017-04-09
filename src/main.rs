@@ -4,7 +4,6 @@ use zxcvbn_rs::{matching, scoring, result};
 use std::env;
 
 fn zxcvbn(password: String, user_dictionary: Vec<String>) {
-    println!("Password is {}", password);
     let matches = matching::omnimatch(password.as_ref());
     let mut best_sequence = scoring::most_guessable_match_sequence(password, 
                                                                    matches, 

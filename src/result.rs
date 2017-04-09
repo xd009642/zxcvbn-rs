@@ -35,12 +35,38 @@ impl CrackTimes {
     }
 }
 
+fn seconds_to_string(seconds: f64) -> String {
+    let minute = 60.0f64;
+    let hour = minute * 60.0f64;
+    let day = hour * 24.0f64;
+    let month = day * 31.0f64;
+    let year = month * 12.0f64;
+    let century = year * 100.0f64;
+    if seconds < 1.0f64 {
+        String::from("less than a second")
+    } else if seconds < minute {
+        format!("{}s", seconds)
+    } else if seconds < hour {
+        format!("{} minute(s)", (seconds/minute).round())
+    } else if seconds < day {
+        format!("{} hour(s)", (seconds/hour).round())
+    } else if seconds < month {
+        format!("{} day(s)", (seconds/day).round())
+    } else if seconds < year {
+        format!("{} month(s)", (seconds/month).round())
+    } else if seconds < century {
+        format!("{} year(s)", (seconds/year).round())
+    } else {
+        String::from("centuries")
+    }
+}
+
 impl fmt::Display for CrackTimes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "  Online throttled:\t{}s", self.online_throttling)?;
-        writeln!(f, "  Online unthrottled:\t{}s", self.online_no_throttling)?;
-        writeln!(f, "  Offline slow:\t\t{}s", self.offline_slow_hashing)?;
-        writeln!(f, "  Offline fast:\t\t{}s", self.offline_fast_hashing)
+        writeln!(f, "  Online throttled:\t{}", seconds_to_string(self.online_throttling))?;
+        writeln!(f, "  Online unthrottled:\t{}", seconds_to_string(self.online_no_throttling))?;
+        writeln!(f, "  Offline slow:\t\t{}", seconds_to_string(self.offline_slow_hashing))?;
+        write!(f, "  Offline fast:\t\t{}", seconds_to_string(self.offline_fast_hashing))
     }
 }
 
@@ -121,7 +147,9 @@ impl fmt::Display for PasswordResult {
         writeln!(f, "Guess times:")?;
         writeln!(f, "{}", self.crack_times)?;
         if let Some(ref feedback) = self.feedback {
-            writeln!(f, "{}", feedback.advice)?;
+            if !feedback.advice.is_empty() {
+                writeln!(f, "{}", feedback.advice)?;
+            }
             if !feedback.suggestions.is_empty() {
                 writeln!(f, "{}", feedback.suggestions)?;
             }
@@ -155,6 +183,7 @@ impl PasswordResult {
                                                              self.sequence.len() == 1));
             }
         }
+        self.crack_times = CrackTimes::new(self.guesses);
     }
 
     fn get_match_feedback(&self, matched: &BaseMatch, only_match: bool) -> Feedback {
