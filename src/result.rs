@@ -1,5 +1,5 @@
 use matching::{BaseMatch, MatchData};
-
+use std::fmt;
 
 /// Provides estimations of the time to crack a password given the number of
 /// guesses required to crack it
@@ -32,6 +32,15 @@ impl CrackTimes {
             offline_slow_hashing: osh,
             offline_fast_hashing: ofh,
         }
+    }
+}
+
+impl fmt::Display for CrackTimes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "  Online throttled:\t{}s", self.online_throttling)?;
+        writeln!(f, "  Online unthrottled:\t{}s", self.online_no_throttling)?;
+        writeln!(f, "  Offline slow:\t\t{}s", self.offline_slow_hashing)?;
+        writeln!(f, "  Offline fast:\t\t{}s", self.offline_fast_hashing)
     }
 }
 
@@ -99,101 +108,29 @@ pub struct PasswordResult {
     pub calculation_time: u32,
 }
 
-
-fn get_match_feedback(matched: &BaseMatch, only_match: bool) -> Feedback {
-    match matched.data {
-        MatchData::Dictionary{..} => get_dictionary_match_feedback(matched, only_match),
-        MatchData::Spatial{ref turns, ..} => 
-            Feedback { 
-                advice: 
-                    if turns == &1 { 
-                        String::from("Straight rows of keys are easier to guess") 
-                    } else { 
-                        String::from("Short keyboard patterns are easy to guess") 
-                    },
-                suggestions: String::from("Use a longer keyboard pattern with more turns")
-        },
-        MatchData::Repeat{ref base_token, ..} => 
-            Feedback {
-                advice: 
-                    if base_token.chars().count() == 1 { 
-                        String::from("Repeats like aaaa are easy to guess")
-                    } else {
-                        String::from("Repeats like abcabc are only slightly harder to guess than abc")
-                    },
-                suggestions: String::from("Avoid repeated words and characters")
-            },
-        MatchData::Sequence{..} => 
-            Feedback {
-                advice: String::from("Sequences like abc or 7654 are easy to guess"),
-                suggestions: String::from("Avoid sequences"),
-            },
-        MatchData::Regex{ref name} => 
-            if name == &"recent year" { 
-                Feedback{
-                    advice: String::from("Recent years are easy to guess"),
-                    suggestions: String::from("Avoid recent years or years associated with you")
-                }
-            } else {
-                Default::default()
-            },
-        MatchData::Date{..} => 
-            Feedback {
-                advice: String::from("Dates are often easy to guess"),
-                suggestions: String::from("Avoid dates and years associated with you")
-            },
-        _ => Default::default(),
-    }
-}
-
-fn get_dictionary_match_feedback(m: &BaseMatch, only_match: bool) -> Feedback {
-    if let MatchData::Dictionary{ref rank, ref dictionary_name, 
-        ref reversed, ref l33t, ..} =m.data {
-        
-        let advice = if dictionary_name == &"Passwords" {
-            if only_match && !l33t.is_some() && !*reversed {
-                if rank <= &10 {
-                    "This is a top-10 common password"
-                } else if rank <= &100 {
-                    "This is a top-100 common password"
-                } else {
-                    "This is a very common password"
-                }
-            } else {
-                ""
-            }
-        } else if dictionary_name == &"Wikipedia" {
-            if only_match {
-                "A word by itself is easy to guess"
-            } else {
-                ""
-            }
-        } else if ["Male names", "Female names", "Surnames"].contains(&dictionary_name.as_ref()) {
-            if only_match {
-                "Names and surnames by themselves are easy to guess"
-            } else {
-                "Common names and surnames are easy to guess"
-            }
-        } else {
-            ""
-        };
-
-        let suggestions = if *reversed {
-            "Reversed words aren't mcuh harder to guess"
-        } else if l33t.is_some() {
-            "Predictable substitutions like '@' instead of 'a' don't help much"
-        } else {
-            ""
-        };
-
-        Feedback{
-            advice: advice.to_string(),
-            suggestions: suggestions.to_string()
+impl fmt::Display for PasswordResult {
+    
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "===============================================")?;
+        writeln!(f, "Password:\t\t{}", self.password)?;
+        writeln!(f, "Guesses raw:\t\t{}", self.guesses)?;
+        writeln!(f, "Guesses log10:\t\t{}", self.guesses_log10)?;
+        if let Some(ref score) = self.score {
+            writeln!(f, "Score:\t\t\t{:#?}", score)?;
         }
-    } else {
-        Default::default()
+        writeln!(f, "Guess times:")?;
+        writeln!(f, "{}", self.crack_times)?;
+        if let Some(ref feedback) = self.feedback {
+            writeln!(f, "{}", feedback.advice)?;
+            if !feedback.suggestions.is_empty() {
+                writeln!(f, "{}", feedback.suggestions)?;
+            }
+        }
+        writeln!(f, "===============================================")?;
+        writeln!(f, "{:#?}", self.sequence)
     }
 }
+
 
 impl PasswordResult {
     pub fn get_feedback(&mut self) {
@@ -214,9 +151,109 @@ impl PasswordResult {
                                                                           .cmp(&y.token.len()))
                                                     .unwrap();
                 
-                self.feedback = Some(get_match_feedback(longest_sequence, 
-                                                        self.sequence.len() == 1));
+                self.feedback = Some(self.get_match_feedback(longest_sequence, 
+                                                             self.sequence.len() == 1));
             }
+        }
+    }
+
+    fn get_match_feedback(&self, matched: &BaseMatch, only_match: bool) -> Feedback {
+        match matched.data {
+            MatchData::Dictionary{..} => self.get_dictionary_match_feedback(matched, only_match),
+            MatchData::Spatial{ref turns, ..} => 
+                Feedback { 
+                    advice: 
+                        if turns == &1 { 
+                            String::from("Straight rows of keys are easier to guess") 
+                        } else { 
+                            String::from("Short keyboard patterns are easy to guess") 
+                        },
+                    suggestions: String::from("Use a longer keyboard pattern with more turns")
+            },
+            MatchData::Repeat{ref base_token, ..} => 
+                Feedback {
+                    advice: 
+                        if base_token.chars().count() == 1 { 
+                            String::from("Repeats like aaaa are easy to guess")
+                        } else {
+                            String::from("Repeats like abcabc are only slightly harder to guess than abc")
+                        },
+                    suggestions: String::from("Avoid repeated words and characters")
+                },
+            MatchData::Sequence{..} => 
+                Feedback {
+                    advice: String::from("Sequences like abc or 7654 are easy to guess"),
+                    suggestions: String::from("Avoid sequences"),
+                },
+            MatchData::Regex{ref name} => 
+                if name == &"recent year" { 
+                    Feedback{
+                        advice: String::from("Recent years are easy to guess"),
+                        suggestions: String::from("Avoid recent years or years associated with you")
+                    }
+                } else {
+                    Default::default()
+                },
+            MatchData::Date{..} => 
+                Feedback {
+                    advice: String::from("Dates are often easy to guess"),
+                    suggestions: String::from("Avoid dates and years associated with you")
+                },
+            _ => Default::default(),
+        }
+    }
+
+    fn get_dictionary_match_feedback(&self, 
+                                     m: &BaseMatch, 
+                                     only_match: bool) -> Feedback {
+
+        if let MatchData::Dictionary{ref rank, ref dictionary_name, 
+            ref reversed, ref l33t, ..} =m.data {
+            
+            let advice = if dictionary_name == &"Passwords" {
+                if only_match && !l33t.is_some() && !*reversed {
+                    if rank <= &10 {
+                        "This is a top-10 common password"
+                    } else if rank <= &100 {
+                        "This is a top-100 common password"
+                    } else {
+                        "This is a very common password"
+                    }
+                } else if self.guesses_log10 <= 4.0f64 { 
+                    "This is similar to a commonly used password"
+                } else {
+                    ""
+                }
+            } else if dictionary_name == &"Wikipedia" {
+                if only_match {
+                    "A word by itself is easy to guess"
+                } else {
+                    ""
+                }
+            } else if ["Male names", "Female names", "Surnames"].contains(&dictionary_name.as_ref()) {
+                if only_match {
+                    "Names and surnames by themselves are easy to guess"
+                } else {
+                    "Common names and surnames are easy to guess"
+                }
+            } else {
+                ""
+            };
+
+            let suggestions = if *reversed {
+                "Reversed words aren't mcuh harder to guess"
+            } else if l33t.is_some() {
+                "Predictable substitutions like '@' instead of 'a' don't help much"
+            } else {
+                ""
+            };
+
+            Feedback{
+                advice: advice.to_string(),
+                suggestions: suggestions.to_string()
+            }
+        } else {
+            Default::default()
         }
     }
 }

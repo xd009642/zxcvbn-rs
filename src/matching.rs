@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::cmp;
 use std::iter::Iterator;
 use fancy_regex::Regex as FancyRegex;
 use regex::Regex;
@@ -272,7 +273,7 @@ fn check_l33t_sub(password: &str,
         match m.data {
             MatchData::Dictionary{ref mut l33t, ref matched_word, ..} => {
                 let mut tmap:HashMap<char, String> = HashMap::new();
-                for (k, v) in password.chars().zip(matched_word.chars()) {
+                for (k, v) in m.token.chars().zip(matched_word.chars()) {
                     if k == v {
                         continue;
                     }
@@ -578,9 +579,7 @@ fn two_to_four_digit_year(year: i32) -> i32 {
 pub fn date_match(password: &str) -> Vec<BaseMatch> {
     let mut result: Vec<BaseMatch> = Vec::new(); 
     let password_len = password.chars().count();
-    if password_len < 4 {
-        return result;
-    }
+
     let date_splits:HashMap<usize, Vec<(usize, usize)>> = {
         let mut m = HashMap::new();
         m.insert(4, vec![(1, 2), (2, 3)]);
@@ -596,7 +595,7 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
     let maybe_date_with_sep = Regex::new(r"^(\d{1,4})([\s/\\_.-])(\d{1,2})([\s/\\_.-])(\d{1,4})$")
         .unwrap(); 
     let ref_year = Local::now().year() as i32;
-    for i in 0..(password_len-3) {
+    for i in 0..(cmp::max(password_len, 3)-3) {
         for j in (i+3)..(i+8) {
             if j >= password_len {
                 break;
@@ -644,7 +643,7 @@ pub fn date_match(password: &str) -> Vec<BaseMatch> {
             result.push(mat);
         }
     }
-    for i in 0..password_len-6 {
+    for i in 0..cmp::max(password_len, 6)-6 {
         for j in (i+5)..(i+10) {
             if j >= password_len {
                 break;

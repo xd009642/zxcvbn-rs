@@ -11,7 +11,7 @@ fn zxcvbn(password: String, user_dictionary: Vec<String>) {
                                                                    false);
     let attack_times = result::CrackTimes::new(best_sequence.guesses);
     best_sequence.get_feedback();
-    println!("{:?}", best_sequence);
+    println!("{}", best_sequence);
 }
 
 fn main() {
