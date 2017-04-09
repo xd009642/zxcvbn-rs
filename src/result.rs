@@ -147,7 +147,52 @@ fn get_match_feedback(matched: &BaseMatch, only_match: bool) -> Feedback {
 }
 
 fn get_dictionary_match_feedback(m: &BaseMatch, only_match: bool) -> Feedback {
-    Default::default()
+    if let MatchData::Dictionary{ref rank, ref dictionary_name, 
+        ref reversed, ref l33t, ..} =m.data {
+        
+        let advice = if dictionary_name == &"Passwords" {
+            if only_match && !l33t.is_some() && !*reversed {
+                if rank <= &10 {
+                    "This is a top-10 common password"
+                } else if rank <= &100 {
+                    "This is a top-100 common password"
+                } else {
+                    "This is a very common password"
+                }
+            } else {
+                ""
+            }
+        } else if dictionary_name == &"Wikipedia" {
+            if only_match {
+                "A word by itself is easy to guess"
+            } else {
+                ""
+            }
+        } else if ["Male names", "Female names", "Surnames"].contains(&dictionary_name.as_ref()) {
+            if only_match {
+                "Names and surnames by themselves are easy to guess"
+            } else {
+                "Common names and surnames are easy to guess"
+            }
+        } else {
+            ""
+        };
+
+        let suggestions = if *reversed {
+            "Reversed words aren't mcuh harder to guess"
+        } else if l33t.is_some() {
+            "Predictable substitutions like '@' instead of 'a' don't help much"
+        } else {
+            ""
+        };
+
+        Feedback{
+            advice: advice.to_string(),
+            suggestions: suggestions.to_string()
+        }
+    } else {
+        Default::default()
+    }
 }
 
 impl PasswordResult {
