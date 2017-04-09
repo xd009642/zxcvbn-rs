@@ -113,18 +113,23 @@ impl PartialEq for BaseMatch {
 }
 
 pub fn matches_from_all_dicts(password: &str, 
-                              matcher: &Fn(&str, &[&'static str])->Vec<BaseMatch>) -> Vec<BaseMatch> {
-    let default_dicts = vec![FEMALE_NAMES,
-                             MALE_NAMES,
-                             SURNAMES,
-                             PASSWORDS,
-                             ENGLISH_WIKIPEDIA,
-                             US_TV_AND_FILM];
+                              matcher: &Fn(&str, &str, &[&str])->Vec<BaseMatch>) -> Vec<BaseMatch> {
+    
+    let dicts:HashMap<&str, &[&str]> = {
+        let mut m = HashMap::new();
+        m.insert("Female names", FEMALE_NAMES);
+        m.insert("Male names", MALE_NAMES);
+        m.insert("Surnames", SURNAMES);
+        m.insert("Passwords", PASSWORDS);
+        m.insert("Wikipedia", ENGLISH_WIKIPEDIA);
+        m.insert("TV and Film", US_TV_AND_FILM);
+        m
+    };
 
-    default_dicts.iter()
-                 .map(|x| matcher(password, x))
-                 .flat_map(|x| x.into_iter())
-                 .collect::<Vec<BaseMatch>>()
+    dicts.iter()
+         .map(|(&k, &v)| matcher(password, k, v))
+         .flat_map(|x| x.into_iter())
+         .collect::<Vec<BaseMatch>>()
 }
 
 /// Matches the password against every matcher returning the matches
@@ -153,7 +158,9 @@ pub fn omnimatch(password: &str) -> Vec<BaseMatch> {
 }
 
 
-fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
+fn dictionary_match(password: &str, 
+                    dictionary_name: &str, 
+                    dictionary: &[&str]) -> Vec<BaseMatch> {
 
     let mut matches: Vec<BaseMatch> = Vec::new();
     let lower = password.to_lowercase();
@@ -164,7 +171,7 @@ fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatc
                 let dict = MatchData::Dictionary {
                     matched_word: slice.to_string(),
                     rank: pass + 1,
-                    dictionary_name: "UNKNOWN".to_string(),
+                    dictionary_name: dictionary_name.to_string(),
                     reversed: false,
                     l33t: None,
                 };
@@ -184,7 +191,7 @@ fn dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatc
 
 #[test]
 fn dictionary_test() {
-    let m = dictionary_match("password", &["pass", "password", "dave"]);
+    let m = dictionary_match("password", "test", &["pass", "password", "dave"]);
     assert_eq!(m.len(), 2);
     for temp in m.iter() {
         match temp.data {
@@ -195,11 +202,15 @@ fn dictionary_test() {
     }
 }
 
-pub fn reverse_dictionary_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
+pub fn reverse_dictionary_match(password: &str,
+                                dictionary_name: &str,
+                                dictionary: &[&str]) -> Vec<BaseMatch> {
     let length = password.chars().count();
     let reversed = password.chars().rev().collect::<String>();
 
-    let mut matches = dictionary_match(reversed.as_ref(), dictionary);
+    let mut matches = dictionary_match(reversed.as_ref(), 
+                                       dictionary_name,
+                                       dictionary);
     for m in matches.iter_mut() {
 
         m.token = m.token.chars().rev().collect::<String>();
@@ -218,7 +229,7 @@ pub fn reverse_dictionary_match(password: &str, dictionary: &[&'static str]) -> 
 
 #[test]
 fn reverse_test() {
-    let m = reverse_dictionary_match("drowssap", &["password"]);
+    let m = reverse_dictionary_match("drowssap", "test", &["password"]);
     assert_eq!(m.len(), 1);
 
     let ref temp = m[0];
@@ -251,8 +262,11 @@ fn replace_single_l33t_char(c: &char) -> char {
 }
 
 
-fn check_l33t_sub(password: &str, sub: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
-    let mut tm = dictionary_match(sub, dictionary);
+fn check_l33t_sub(password: &str, 
+                  sub: &str, 
+                  dictionary_name: &str,
+                  dictionary: &[&str]) -> Vec<BaseMatch> {
+    let mut tm = dictionary_match(sub, dictionary_name, dictionary);
     for m in tm.iter_mut() {
         m.token = password[m.start..(m.end + 1)].to_string();
         match m.data {
@@ -283,7 +297,9 @@ fn check_l33t_sub(password: &str, sub: &str, dictionary: &[&'static str]) -> Vec
 /// l33t match assumes that a symbol which can mean multiple letters will only
 /// be used for one of those letters during a match.
 /// Behaviour slightly differs from dropbox on this currently
-pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch> {
+pub fn l33t_match(password: &str, 
+                  dictionary_name: &str,
+                  dictionary: &[&str]) -> Vec<BaseMatch> {
 
     let mut matches: Vec<BaseMatch> = Vec::new();
 
@@ -297,7 +313,8 @@ pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch>
 
     if remaining_l33ts == 0 && partial_sub != password {
 
-        let mut tm = check_l33t_sub(password, partial_sub.as_ref(), dictionary);
+        let mut tm = check_l33t_sub(password, partial_sub.as_ref(), 
+                                    dictionary_name, dictionary);
         matches.append(&mut tm);
 
     } else if remaining_l33ts > 0 {
@@ -332,7 +349,8 @@ pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch>
                                               }
                                           })
                                           .collect::<String>();
-                let mut tm = check_l33t_sub(password, full_sub.as_ref(), dictionary);
+                let mut tm = check_l33t_sub(password, full_sub.as_ref(), 
+                                            dictionary_name, dictionary);
                 matches.append(&mut tm);
             }
 
@@ -352,7 +370,7 @@ pub fn l33t_match(password: &str, dictionary: &[&'static str]) -> Vec<BaseMatch>
 
 #[test]
 fn l33t_match_test() {
-    let m = l33t_match("pa$$w0rd", &["password", "pass"]);
+    let m = l33t_match("pa$$w0rd", "t3st", &["password", "pass"]);
     assert_eq!(m.len(), 2);
     
     for temp in m.iter() {
@@ -365,7 +383,7 @@ fn l33t_match_test() {
         }
     }
 
-    let m = l33t_match("!llus1on", &["illusion"]);
+    let m = l33t_match("!llus1on", "t3st", &["illusion"]);
     assert_eq!(m.len(), 0);
 }
 
