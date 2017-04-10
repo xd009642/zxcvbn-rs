@@ -8,7 +8,6 @@ fn zxcvbn(password: String, user_dictionary: Vec<String>) {
     let mut best_sequence = scoring::most_guessable_match_sequence(password, 
                                                                    matches, 
                                                                    false);
-    let attack_times = result::CrackTimes::new(best_sequence.guesses);
     best_sequence.get_feedback();
     println!("{}", best_sequence);
 }

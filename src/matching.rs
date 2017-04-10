@@ -180,7 +180,7 @@ fn dictionary_match(password: &str,
                     pattern: String::from("Dictionary"),
                     start: i,
                     end: j,
-                    token: slice.to_string(),
+                    token: password[i..j+1].to_string(),
                     data: dict,
                 });
             }
@@ -236,8 +236,8 @@ fn reverse_test() {
     let ref temp = m[0];
     assert_eq!("drowssap", temp.token);
     match temp.data {
-        MatchData::Dictionary{ref matched_word, ref rank, ref dictionary_name, 
-            ref reversed, ref l33t} => {
+        MatchData::Dictionary{ref matched_word, ref rank, 
+            ref reversed, ref l33t, ..} => {
             assert_eq!(*reversed, true);
             assert_eq!(*matched_word, "password");
             assert_eq!(*rank, 1);

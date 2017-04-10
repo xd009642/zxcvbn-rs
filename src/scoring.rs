@@ -126,6 +126,7 @@ fn nCk(mut n: u64, k: u64) -> u64 {
 }
 
 #[test]
+#[allow(non_snake_case)]
 fn nCk_test() {
     assert!(nCk(2, 1) == 2);
     assert!(nCk(2, 2) == 1);
@@ -139,7 +140,7 @@ fn bruteforce_match(password: &String, start: usize, end: usize) -> BaseMatch {
         pattern: String::from("Bruteforce"),
         start: start,
         end: end,
-        token: password[start..end + 1].to_string(),
+        token: password[start..end+1].to_string(),
         data: MatchData::Plain,
     }
 }
@@ -178,7 +179,7 @@ pub fn most_guessable_match_sequence(password: String,
         // Bruteforce update
         let bm = bruteforce_match(&password, 0, k);
         optimal.update(pref, &bm, 1);
-        for i in 1..k {
+        for i in 1..k+1 {
             let bm = bruteforce_match(&password, i, k);
 
             let lengths = optimal.scores

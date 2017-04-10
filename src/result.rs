@@ -86,7 +86,7 @@ pub struct Feedback {
     /// Advice for creating stronger passwords  
     pub advice: String,
     /// Suggests how the password can be modified. e.g. add another word
-    pub suggestions: String,
+    pub suggestions: Vec<String>,
 }
 
 pub fn get_feedback(guesses: u64) -> PasswordScore {
@@ -105,8 +105,8 @@ impl Default for Feedback {
     fn default() -> Feedback {
         Feedback {
             advice: String::new(),
-            suggestions: String::from("Use a few words, avoid common phrases.\nNo need for \
-                                       symbols, digits, or uppercase letters."),
+            suggestions: vec![String::from("Use a few words, avoid common phrases.\nNo need for \
+                                       symbols, digits, or uppercase letters.")],
         }
     }
 }
@@ -150,8 +150,8 @@ impl fmt::Display for PasswordResult {
             if !feedback.advice.is_empty() {
                 writeln!(f, "{}", feedback.advice)?;
             }
-            if !feedback.suggestions.is_empty() {
-                writeln!(f, "{}", feedback.suggestions)?;
+            for suggestion in feedback.suggestions.iter() {
+                writeln!(f, "{}", suggestion)?;
             }
         }
         writeln!(f, "===============================================")?;
@@ -169,7 +169,7 @@ impl PasswordResult {
         if let Some(ref s) = self.score {
             if s == &PasswordScore::Strong || s == &PasswordScore::VeryStrong {
                 self.feedback = Some(Feedback{ 
-                    suggestions: String::new(), 
+                    suggestions: Vec::new(), 
                     ..Default::default()
                 });
             } else {
@@ -197,7 +197,7 @@ impl PasswordResult {
                         } else { 
                             String::from("Short keyboard patterns are easy to guess") 
                         },
-                    suggestions: String::from("Use a longer keyboard pattern with more turns")
+                    suggestions: vec![String::from("Use a longer keyboard pattern with more turns")]
             },
             MatchData::Repeat{ref base_token, ..} => 
                 Feedback {
@@ -207,18 +207,18 @@ impl PasswordResult {
                         } else {
                             String::from("Repeats like abcabc are only slightly harder to guess than abc")
                         },
-                    suggestions: String::from("Avoid repeated words and characters")
+                    suggestions: vec![String::from("Avoid repeated words and characters")]
                 },
             MatchData::Sequence{..} => 
                 Feedback {
                     advice: String::from("Sequences like abc or 7654 are easy to guess"),
-                    suggestions: String::from("Avoid sequences"),
+                    suggestions: vec![String::from("Avoid sequences")]
                 },
             MatchData::Regex{ref name} => 
                 if name == &"recent year" { 
                     Feedback{
                         advice: String::from("Recent years are easy to guess"),
-                        suggestions: String::from("Avoid recent years or years associated with you")
+                        suggestions: vec![String::from("Avoid recent years or years associated with you")]
                     }
                 } else {
                     Default::default()
@@ -226,7 +226,7 @@ impl PasswordResult {
             MatchData::Date{..} => 
                 Feedback {
                     advice: String::from("Dates are often easy to guess"),
-                    suggestions: String::from("Avoid dates and years associated with you")
+                    suggestions: vec![String::from("Avoid dates and years associated with you")]
                 },
             _ => Default::default(),
         }
@@ -237,7 +237,7 @@ impl PasswordResult {
                                      only_match: bool) -> Feedback {
 
         if let MatchData::Dictionary{ref rank, ref dictionary_name, 
-            ref reversed, ref l33t, ..} =m.data {
+            ref reversed, ref l33t, ref matched_word} =m.data {
             
             let advice = if dictionary_name == &"Passwords" {
                 if only_match && !l33t.is_some() && !*reversed {
@@ -268,18 +268,21 @@ impl PasswordResult {
             } else {
                 ""
             };
+            let mut suggestions:Vec<String> = Vec::new();
 
-            let suggestions = if *reversed {
-                "Reversed words aren't mcuh harder to guess"
+            if matched_word.to_uppercase() == m.token {
+                suggestions.push(String::from("All uppercase is almost as easy to guess as all lowercase"));
+            }
+
+            if *reversed {
+                suggestions.push(String::from("Reversed words aren't mcuh harder to guess"));
             } else if l33t.is_some() {
-                "Predictable substitutions like '@' instead of 'a' don't help much"
-            } else {
-                ""
-            };
+                suggestions.push(String::from("Predictable substitutions like '@' instead of 'a' don't help much"));
+            } 
 
             Feedback{
                 advice: advice.to_string(),
-                suggestions: suggestions.to_string()
+                suggestions: suggestions
             }
         } else {
             Default::default()
