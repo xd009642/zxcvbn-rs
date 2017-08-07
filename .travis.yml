@@ -1,6 +1,11 @@
 language: rust
+dist: trusty
 cache: cargo
 sudo: required
+addons:
+    apt:
+        packages:
+            - libssl-dev
 rust:
 - stable
 - beta
