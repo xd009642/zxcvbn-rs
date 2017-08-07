@@ -17,6 +17,12 @@ script:
 - cargo build
 - cargo test
 
+after_success: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    bash <(curl https://raw.githubusercontent.com/xd009642/tarpaulin/master/travis-install.sh)
+    cargo tarpaulin
+  fi
+
 before_deploy:
     - sh ci/before_deploy.sh
 
