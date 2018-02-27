@@ -8,8 +8,6 @@ addons:
             - libssl-dev
 rust:
 - stable
-- beta
-- nightly
 env:
     global:
         - CRATE_NAME=zxcvbn-rs
@@ -24,8 +22,9 @@ script:
 
 after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    bash <(curl https://raw.githubusercontent.com/xd009642/tarpaulin/master/travis-install.sh)
-    cargo tarpaulin
+    cargo install cargo-tarpaulin --git htpps://github.com/xd009642/tarpaulin --branch ds_improvements
+    cargo tarpaulin --Out Xml --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
+    bash <(curl -s https://codecov.io/bash)
   fi
 
 before_deploy:
