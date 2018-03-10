@@ -26,6 +26,7 @@ after_success: |
     # cargo install cargo-tarpaulin 
     cargo tarpaulin --out Xml --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
     bash <(curl -s https://codecov.io/bash)
+    cat cobertura.xml
   fi
 
 before_deploy:
