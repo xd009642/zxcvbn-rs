@@ -22,7 +22,7 @@ script:
 
 after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch develop
+    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch syn_patch
     # cargo install cargo-tarpaulin 
     cargo tarpaulin --out Xml --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
     bash <(curl -s https://codecov.io/bash)
