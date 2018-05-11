@@ -8,9 +8,13 @@ addons:
             - libssl-dev
 rust:
 - stable
-env:
-    global:
-        - CRATE_NAME=zxcvbn-rs
+- nightly-2018-05-11
+- nightly-2018-05-10
+- nightly-2018-05-06
+- nightly-2018-05-05
+- nightly-2018-05-04
+- nightly-2018-05-03
+- nightly-2018-04-16
 
 matrix:
   allow_failures:
@@ -20,26 +24,3 @@ script:
 - cargo build
 - cargo test
 
-after_success: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch ds_improvements
-    # cargo install cargo-tarpaulin 
-    cargo tarpaulin --out Xml --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
-    bash <(curl -s https://codecov.io/bash)
-    cat cobertura.xml
-  fi
-
-before_deploy:
-    - sh ci/before_deploy.sh
-
-deploy:
-  provider: releases
-  api_key:
-    secure: W8wK7F4KqNjYZsO5pw1x/66K/OO/dEoizJwEI9InyP545eFKf6qa9J+GAFWMC9xLvO3q4/dEk6eTxOJCn36zUyclNJJyMQ/BnnYtFouRqr5beMDU6KLolsZ1WpWFoYIdPiqmU2lO2bTFxbGpz4lSN30Khcbsq6Q1ypgt2uqLwTRj4IFnYnakW+vzORbTBLLMedMzLAuTVkEekiYGBC1ZOUAuej2vl7RyEooMKe7bmX6PekiFRYdn2UHliqr/v9zSQMJhRkqODpBeOigXP3E3RNfl9Ez92sRt6NJLnbplmjJ1tf3Gkz76w+MEyjJ9rN0Rt7eHbPMf/e0osml/AU0bYERlc3OfV3zcg0vRK1cM3I8+bT7nhuBZnfGfgvMgztXJ+jAd/V7iJG4P6ep8n+CBnlD1P8eqn1BSAH7bbFqHYa2RP/MWARs7a81tqOzBA1tZBd9U3QiQ1VPa8jNbuqcORYrwkpuou8YJmhs4vi1vNKOmiw9ir+COsxu+sjoJZDNAdHFiO9WFNWlAn+XLrs826F9ihsR9eee9BaxNqAszInEynps5vmRM2ng3LbHNl1wkQalDtDei0vlyq482DUQq8vPFiJcPWHTJPxmj6pEwMhN77Pk9nwaptyOrrae/+UAdlHr0/8eWwIs8dyiZYlsvN5Wr7eKI34KGhGO1+AZfy6k=
-  file_glob: true
-  file: $CRATE_NAME-$TRAVIS_TAG.*
-  skip_cleanup: true
-  on:
-    condition: $TRAVIS_RUST_VERSION = stable
-    repo: xd009642/zxcvbn-rs
-    tags: true
