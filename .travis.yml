@@ -22,7 +22,7 @@ script:
 
 after_success: |
    if [["$TRAVIS_BRANCH" == develop ]]; then
-       - echo "Works"
+       ./ci/before_deploy.sh
    fi
 #  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
 #    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch syn_patch
