@@ -21,9 +21,9 @@ script:
 - cargo test
 
 after_success: |
-   if [["$TRAVIS_BRANCH" == develop ]]; then
-       ./ci/before_deploy.sh
-   fi
+   test $TRAVIS_BRANCH = master &&
+   test $TRAVIS_RUST_VERSION = stable &&
+   echo "boo"
 #  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
 #    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch syn_patch
 #    # cargo install cargo-tarpaulin 
