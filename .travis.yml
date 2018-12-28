@@ -24,13 +24,11 @@ after_success: |
    test $TRAVIS_BRANCH = master &&
    test $TRAVIS_RUST_VERSION = stable &&
    ./ci/before_deploy.sh
-#  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-#    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch syn_patch
-#    # cargo install cargo-tarpaulin 
-#    cargo tarpaulin --out Xml --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
-#    bash <(curl -s https://codecov.io/bash)
-#    cat cobertura.xml
-#  fi
+  if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
+    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch issue_55
+    cargo tarpaulin --out Cobertura --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
+    bash <(curl -s https://codecov.io/bash)
+  fi
 
 before_deploy:
     - sh ci/before_deploy.sh
