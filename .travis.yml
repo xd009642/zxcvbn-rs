@@ -7,7 +7,7 @@ addons:
         packages:
             - libssl-dev
 rust:
-- stable
+- nightly
 env:
     global:
         - CRATE_NAME=zxcvbn-rs
