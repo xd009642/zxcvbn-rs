@@ -25,8 +25,8 @@ after_success: |
    test $TRAVIS_RUST_VERSION = nightly &&
    ./ci/before_deploy.sh
   if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
-    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch issue_55
-    cargo tarpaulin --out Cobertura --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
+    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --branch coveralls-test
+    cargo tarpaulin --coveralls $TRAVIS_JOB_ID
     bash <(curl -s https://codecov.io/bash)
   fi
 
